@@ -17,6 +17,11 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 import 'package:socket_io_client/socket_io_client.dart' as io;
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'dart:math';
+import 'package:location/location.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class Driver1 extends StatefulWidget {
   const Driver1({super.key});
@@ -26,12 +31,17 @@ class Driver1 extends StatefulWidget {
 }
 
 class _Driver1State extends State<Driver1> {
+  GoogleMapController? _mapController;
+  double _tilt = 0.0; // Variable para la inclinación del mapa
+  String _mapStyle = '';
   late io.Socket socket;
   String apiUrl = dotenv.env['API_URL'] ?? '';
   String apiPedidosConductor = '/api/pedido_conductor/';
   String apiDetallePedido = '/api/detallepedido/';
   String apiUpdateestado = '/api/estadoflash/';
   List<Pedido> listPedidosbyRuta = [];
+  LatLng _currentPosition = const LatLng(-16.4014, -71.5343);
+  double _currentBearing = 0.0;
   int cantidadpedidos = 0;
   List<String> nombresproductos = [];
   List<Producto> listProducto = [];
@@ -58,6 +68,37 @@ class _Driver1State extends State<Driver1> {
   int pedidoescuchado = 0;
   String estadoescuchado = "NA";
   int pedidoguardado = 0;
+  int pedidonotificado = 0;
+  String nombreconductor = "NA";
+  String tiempoaceptado = "NA";
+  String apiAceptadopor = "/api/aceptarpedido";
+  double _currentzoom = 16.0;
+  List<LatLng> polypoints = [];
+  BitmapDescriptor? _originIcon;
+  BitmapDescriptor? _destinationIcon;
+  Future<dynamic> aceptadoPor(int? conductor, int pedido, int orden) async {
+    final pedidosProvider =
+        Provider.of<PedidoconductorProvider>(context, listen: false);
+    try {
+      DateTime horaactual = DateTime.now();
+      print("---------------ACEPTAROD ..........");
+      var res = await http.post(Uri.parse(apiUrl + apiAceptadopor),
+          headers: {"Content-type": "application/json"},
+          body: jsonEncode({
+            "conductor_id": conductor,
+            "pedido_id": pedido,
+            "fecha_aceptacion": horaactual.toString()
+          }));
+      print("........RES ${res.body}");
+      if (res.statusCode == 200) {
+        print("post de consulta ok");
+      } else {
+        print("post incorrecto");
+      }
+    } catch (error) {
+      throw Exception("Error de query aceptar: ${error}");
+    }
+  }
 
   void _showdialogconductor() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -305,47 +346,238 @@ class _Driver1State extends State<Driver1> {
     );
   }*/
 
+  double _toRadians(double degree) {
+    return degree * pi / 180;
+  }
+
+  double _toDegrees(double radian) {
+    return radian * 180 / pi;
+  }
+
+  /*double _calculateBearing(LatLng start, LatLng end) {
+    double lat1 = _toRadians(start.latitude);
+    double lon1 = _toRadians(start.longitude);
+    double lat2 = _toRadians(end.latitude);
+    double lon2 = _toRadians(end.longitude);
+
+    double dLon = lon2 - lon1;
+
+    double y = sin(dLon) * cos(lat2);
+    double x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon);
+    double bearing = atan2(y, x);
+    bearing = _toDegrees(bearing);
+    return (bearing + 360) % 360;
+  }*/
+
+  /*Future<void> _getCurrentLocation() async {
+    // print("-------------------------Llamando a current position");
+    Location location = Location();
+    bool _serviceEnabled;
+    PermissionStatus _permissionGranted;
+
+    _serviceEnabled = await location.serviceEnabled();
+    if (!_serviceEnabled) {
+      _serviceEnabled = await location.requestService();
+      if (!_serviceEnabled) {
+        return;
+      }
+    }
+
+    _permissionGranted = await location.hasPermission();
+    if (_permissionGranted == PermissionStatus.denied) {
+      _permissionGranted = await location.requestPermission();
+      if (_permissionGranted != PermissionStatus.granted) {
+        return;
+      }
+    }
+
+    // Obtener la ubicación inicial
+    /*LocationData _locationData = await location.getLocation();
+    _updatePosition(_locationData);
+
+    // Escuchar las actualizaciones de la ubicación
+    location.onLocationChanged.listen((LocationData currentLocation) {
+      _updatePosition(currentLocation);
+    });*/
+  }*/
+/*
+  void _updatePosition(LocationData locationData) {
+    if (!mounted) return;
+
+    LatLng newPosition =
+        LatLng(locationData.latitude!, locationData.longitude!);
+
+    // Calcular el bearing si hay una posición anterior
+    if (_currentPosition != newPosition) {
+      double newBearing = _calculateBearing(_currentPosition, newPosition);
+      setState(() {
+        _currentBearing = newBearing;
+        _currentPosition = newPosition;
+      });
+    }
+
+    // Animar la cámara a la nueva posición y orientación
+    _mapController?.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: _currentPosition,
+          zoom: _currentzoom,
+          tilt: _tilt,
+          bearing: _currentBearing,
+        ),
+      ),
+    );
+
+    // Actualizar los puntos de la polyline
+   // getPolypoints();
+  }*/
+
+  Future<void> _loadMapStyle() async {
+    String style = await rootBundle.loadString('lib/imagenes/estilomapa.json');
+    setState(() {
+      _mapStyle = style;
+    });
+  }
+
+  Future<void> _loadMarkerIcons() async {
+    _originIcon = await BitmapDescriptor.asset(
+      const ImageConfiguration(size: Size(48, 48)), // Tamaño del icono
+      'lib/imagenes/carropin_final.png',
+    );
+    _destinationIcon = await BitmapDescriptor.asset(
+      const ImageConfiguration(size: Size(48, 48)),
+      'lib/imagenes/pin_casa_final.png',
+    );
+  }
+
+  /// nueva función
+  // Función para obtener los puntos de la ruta
+/*Future<List<LatLng>> getPolypoints(LatLng origin, LatLng destination) async {
+  PolylinePoints polylinePoints = PolylinePoints();
+  List<LatLng> polyPoints = [];
+
+  PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
+    googleApiKey: "AIzaSyA45xOgppdm-PXYDE5r07eDlkFuPzYmI9g",
+    request: PolylineRequest(
+      origin: PointLatLng(origin.latitude, origin.longitude),
+       destination: PointLatLng(destination.latitude, destination.longitude),
+        mode: TravelMode.driving)
+
+  );
+
+  if (result.points.isNotEmpty) {
+    for (var point in result.points) {
+      polyPoints.add(LatLng(point.latitude, point.longitude));
+    }
+  }
+
+  return polyPoints;
+}*/
+// Función para obtener los puntos de la ruta con validación y manejo de errores
+  Future<List<LatLng>> getPolypoints(LatLng origin, LatLng destination) async {
+    List<LatLng> polyPoints = [];
+
+    // Validación de coordenadas fuera de rango
+    if (origin.latitude < -90 ||
+        origin.latitude > 90 ||
+        origin.longitude < -180 ||
+        origin.longitude > 180 ||
+        destination.latitude < -90 ||
+        destination.latitude > 90 ||
+        destination.longitude < -180 ||
+        destination.longitude > 180) {
+      print("Las coordenadas ingresadas están fuera de rango.");
+      return polyPoints; // Retorna la lista vacía
+    }
+
+    try {
+      PolylinePoints polylinePoints = PolylinePoints();
+      PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
+        googleApiKey:
+            "AIzaSyA45xOgppdm-PXYDE5r07eDlkFuPzYmI9g", // Asegúrate de usar tu API Key
+        request: PolylineRequest(
+          origin: PointLatLng(origin.latitude, origin.longitude),
+          destination: PointLatLng(destination.latitude, destination.longitude),
+          mode: TravelMode.driving, // Puedes cambiar a walking, biking, etc.
+        ),
+      );
+
+      if (result.status == "OK" && result.points.isNotEmpty) {
+        result.points.forEach((PointLatLng point) {
+          polyPoints.add(LatLng(point.latitude, point.longitude));
+        });
+        print("Puntos de la ruta obtenidos correctamente.");
+      } else if (result.status == "ZERO_RESULTS") {
+        print("No se encontraron resultados para la ruta.");
+      } else {
+        print("Error al obtener la ruta: ${result.status}");
+      }
+    } catch (e) {
+      print("Error al obtener la ruta: $e");
+    }
+
+    return polyPoints;
+  }
+
   @override
   void initState() {
     super.initState();
     getProducts();
+    _loadMapStyle();
+    _loadMarkerIcons();
+    // _getCurrentLocation();
     // getPedidosConductor();
     /*final pedidosProvider = Provider.of<PedidoconductorProvider>(context, listen: false);
     pedidosProvider.getPedidosConductor();*/
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-  /*  final pedidosProvider =
+    /*  final pedidosProvider =
         Provider.of<PedidoconductorProvider>(context, listen: false);
     pedidosProvider.getPedidosConductor();*/
     // socketService.connectToServer(apiUrl);
     /* if(rutaCounter>0){
       _showdialogconductor();
     }*/
- socketService.onPedidoAnadido((data) async {
-    if (!mounted) return;
-    print("Pedido añadido: $data");
+    socketService.onPedidoAnadido((data) async {
+      if (!mounted) return;
+      print("Pedido añadido: $data");
 
-    setState(() {
-      rutaCounter++;
+      // Actualizar el estado
+      setState(() {
+        rutaCounter++;
+      });
+
+      // Asegúrate de que el contexto aún es válido
+      if (mounted) {
+        final pedidosProvider =
+            Provider.of<PedidoconductorProvider>(context, listen: false);
+        await pedidosProvider.getPedidosConductor();
+
+        // Usar addPostFrameCallback para mostrar el SnackBar después de la actualización del estado
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            // Verifica nuevamente si el widget está montado
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.only(top: 20, left: 10, right: 10),
+                content: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Pedido añadido'),
+                    Icon(Icons.local_shipping_outlined, color: Colors.white),
+                  ],
+                ),
+                backgroundColor: Color.fromARGB(255, 42, 30, 174),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        });
+      }
     });
 
-    final pedidosProvider = Provider.of<PedidoconductorProvider>(context, listen: false);
-    pedidosProvider.getPedidosConductor();
-    ScaffoldMessenger.of(context).showSnackBar(
-   const SnackBar(
-      content: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text('Pedido añadido '),
-          Icon(Icons.local_shipping_outlined,color: Colors.white,)
-        ],
-      ),
-      backgroundColor: Color.fromARGB(255, 42, 30, 174),
-      duration: Duration(seconds: 2),
-    ),
-  );
-  });
     /////
-   /* socketService.listenToEvent('pedidoañadido', (data) async {
+    /* socketService.listenToEvent('pedidoañadido', (data) async {
       //SharedPreferences prefs = await SharedPreferences.getInstance();
       if (!mounted) return;
       print("------esta es la PEDIDO AÑADIDO");
@@ -398,14 +630,23 @@ class _Driver1State extends State<Driver1> {
       print("$data");
       final pedidosProvider =
           Provider.of<PedidoconductorProvider>(context, listen: false);
+      SharedPreferences aceptadoporpref = await SharedPreferences.getInstance();
+
       setState(() {
         conductoridescuchado = data['conductor'];
         print("conductor $conductoridescuchado");
+        pedidonotificado = data['pedido'];
       });
       print("id usuario ${userProvider.user?.id}");
 
       if (userProvider.user?.id != data['conductor']) {
-        pedidosProvider.rechazarPedidos(data['pedido']);
+        aceptadoporpref.setInt('conductorID', data['conductor']);
+        pedidosProvider.setAceptadopor(data['nombre']);
+
+        // pedidosProvider.rechazarPedidos(data['pedido']);
+      } else {
+        aceptadoporpref.setInt('conductorID', data['conductor']);
+        pedidosProvider.setAceptadopor(userProvider.user!.nombre);
       }
     });
 
@@ -414,6 +655,7 @@ class _Driver1State extends State<Driver1> {
 
   @override
   void dispose() {
+    _mapController?.dispose();
     super.dispose();
     //socketService.dispose();
   }
@@ -452,15 +694,25 @@ class _Driver1State extends State<Driver1> {
           color: Color.fromARGB(255, 0, 0, 0),
         ),
         toolbarHeight: MediaQuery.of(context).size.height / 18,
-        title: Row(
+        title: const Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Pedidos',
+            Text('Pedidos',
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 29,
                     color: Color.fromARGB(255, 0, 0, 0))),
-            
+            /*IconButton(
+                onPressed: () {
+                  showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: Text("Aceptados por:"),
+                        );
+                      });
+                },
+                icon: const Icon(Icons.pan_tool_outlined).animate().shakeX())*/
           ],
         ),
         /* leading: IconButton(
@@ -485,7 +737,7 @@ class _Driver1State extends State<Driver1> {
             ),
           ),
           Padding(
-            padding: EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(8.0),
             child: Container(
               //color: Color.fromARGB(255, 255, 255, 255),
               child: Column(
@@ -501,13 +753,13 @@ class _Driver1State extends State<Driver1> {
                         Container(
                           child: Text(
                             pedidosProvider.pedidos.length > 0
-                                ? "Total: ${pedidosProvider.listPedidos.length}"
+                                ? "Ruta N° ${pedidosProvider.getIdRuta()} - Total: ${pedidosProvider.listPedidos.length}"
                                 : "*",
                             style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize:
                                     MediaQuery.of(context).size.width / 25,
-                                color: Color.fromARGB(255, 0, 0, 0)),
+                                color: const Color.fromARGB(255, 0, 0, 0)),
                           ),
                         ),
                       ],
@@ -516,7 +768,11 @@ class _Driver1State extends State<Driver1> {
                   const SizedBox(
                     height: 10.0,
                   ),
-                  Container(
+                  RefreshIndicator(
+                    onRefresh: () async {
+                      await pedidosProvider.getPedidosConductor();
+                    },
+                    child: Container(
                       // color: Colors.grey,
                       height: MediaQuery.of(context).size.height / 1.2,
                       child: Consumer<PedidoconductorProvider>(
@@ -524,582 +780,770 @@ class _Driver1State extends State<Driver1> {
                           // NUEVA VARIABLE A UTILIZAR
                           final listpedidosconductorruta =
                               pedidosProvider.listPedidos;
-                          return  RefreshIndicator(
-                            onRefresh: ()async {
-                              await pedidosProvider.getPedidosConductor();
-                            },
-                            child: ListView.builder(
-                                itemCount: listpedidosconductorruta.length,
-                                itemBuilder: (context, index) {
-                                  bool isActive = index == activeOrderIndex;
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 20),
-                                    padding: const EdgeInsets.all(20),
-                                    height:
-                                        MediaQuery.of(context).size.height / 2.5,
-                                    decoration: BoxDecoration(
-                                        color: listpedidosconductorruta[index]
-                                                    .estado ==
-                                                'en proceso'
-                                            ? Color.fromARGB(255, 87, 55, 55)
-                                                .withOpacity(0.85)
-                                            : listpedidosconductorruta[index]
-                                                        .estado ==
-                                                    'entregado'
-                                                ? Color.fromARGB(255, 30, 175, 25)
-                                                    .withOpacity(0.85)
-                                                : listpedidosconductorruta[index]
+                          return ListView.builder(
+                              itemCount: listpedidosconductorruta.length,
+                              itemBuilder: (context, index) {
+                                bool isActive = index == activeOrderIndex;
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 20),
+                                  padding: const EdgeInsets.all(20),
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.48,
+                                  decoration: BoxDecoration(
+                                      color: listpedidosconductorruta[index].estado ==
+                                              'en proceso'
+                                          ? (listpedidosconductorruta[index].id ==
+                                                          pedidonotificado &&
+                                                      userProvider.user?.id ==
+                                                          conductoridescuchado
+                                                  ? Color.fromARGB(
+                                                      255, 255, 255, 255)
+                                                  : const Color.fromARGB(
+                                                      255, 209, 209, 209))
+                                              .withOpacity(0.85)
+                                          : listpedidosconductorruta[index].estado ==
+                                                  'entregado'
+                                              ? Color.fromARGB(255, 30, 175, 25)
+                                                  .withOpacity(0.85)
+                                              : listpedidosconductorruta[index].estado ==
+                                                      'anulado'
+                                                  ? Color.fromARGB(255, 255, 2, 2)
+                                                      .withOpacity(0.85)
+                                                  : Color.fromRGBO(0, 38, 255, 1)
+                                                      .withOpacity(0.65),
+                                      borderRadius: BorderRadius.circular(20)),
+                                  child: Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            "Orden ID#",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color:
+                                                    listpedidosconductorruta[index]
+                                                                .estado ==
+                                                            'en proceso'
+                                                        ? const Color.fromARGB(
+                                                            255, 0, 0, 0)
+                                                        : Colors.white),
+                                          ),
+                                          Text(
+                                            "${listpedidosconductorruta[index].id}",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color:
+                                                    listpedidosconductorruta[index]
+                                                                .estado ==
+                                                            'en proceso'
+                                                        ? const Color.fromARGB(
+                                                            255, 0, 0, 0)
+                                                        : Colors.white),
+                                          ),
+                                          Text(
+                                            "Estado: ${listpedidosconductorruta[index].estado}",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: listpedidosconductorruta[
+                                                                index]
                                                             .estado ==
-                                                        'anulado'
+                                                        'en proceso'
                                                     ? Color.fromARGB(
-                                                            255, 255, 2, 2)
-                                                        .withOpacity(0.85)
-                                                    : Color.fromRGBO(
-                                                            0, 38, 255, 1)
-                                                        .withOpacity(0.65),
-                                        borderRadius: BorderRadius.circular(20)),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              "Orden ID#",
-                                              style: TextStyle(
+                                                        255, 0, 0, 0)
+                                                    : Colors
+                                                        .white // Color para 'en proceso'
+
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(
+                                        height: 10,
+                                      ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          // CIRCULO
+                                          Row(
+                                            children: [
+                                              Container(
+                                                width: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    19,
+                                                height: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    19,
+                                                decoration: BoxDecoration(
+                                                    color:
+                                                        listpedidosconductorruta[
+                                                                        index]
+                                                                    .tipo ==
+                                                                'normal'
+                                                            ? const Color
+                                                                .fromARGB(255,
+                                                                34, 223, 16)
+                                                            : const Color
+                                                                .fromARGB(255,
+                                                                255, 4, 234),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            50)),
+                                              ),
+                                              const SizedBox(
+                                                width: 3,
+                                              ),
+                                              Text(
+                                                "F: ${listpedidosconductorruta[index].fecha.split('T')[0]} / H: ${listpedidosconductorruta[index].fecha.split('T')[1].split('.')[0]}",
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .width *
+                                                            0.029,
+                                                    color:
+                                                        listpedidosconductorruta[
+                                                                        index]
+                                                                    .estado ==
+                                                                'en proceso'
+                                                            ? Colors.black
+                                                            : Colors.white),
+                                              ),
+                                            ],
+                                          ),
+
+                                          Text(
+                                            "Pedido: ${listpedidosconductorruta[index].tipo}",
+                                            style: TextStyle(
+                                                color: listpedidosconductorruta[
+                                                                index]
+                                                            .estado ==
+                                                        'en proceso'
+                                                    ? Color.fromARGB(
+                                                        255, 0, 0, 0)
+                                                    : Colors.white,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+
+                                          /*Text(listpedidosconductorruta[index].estado !='pendiente' ? (listpedidosconductorruta[index].id == pedidonotificado 
+                                                && userProvider.user?.id == conductoridescuchado ?
+                                                 "Aceptado por: ${userProvider.user?.nombre}" : "Aceptado por: Compañero") : '',
+                    
+                                                style: TextStyle(
                                                   fontWeight: FontWeight.bold,
-                                                  color: listpedidosconductorruta[
-                                                                  index]
-                                                              .estado ==
-                                                          'en proceso'
-                                                      ? Color.fromARGB(
-                                                          255, 0, 0, 0)
-                                                      : Colors.white),
-                                            ),
-                                            Text(
-                                              "${listpedidosconductorruta[index].id}",
-                                              style: TextStyle(
-                                                  color: listpedidosconductorruta[
-                                                                  index]
-                                                              .estado ==
-                                                          'en proceso'
-                                                      ? Color.fromARGB(
-                                                          255, 0, 0, 0)
-                                                      : Colors.white),
-                                            ),
-                                            Text(
-                                              "Estado: ${listpedidosconductorruta[index].estado}",
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: listpedidosconductorruta[
-                                                                  index]
-                                                              .estado ==
-                                                          'en proceso'
-                                                      ? Color.fromARGB(
-                                                          255, 0, 0, 0)
-                                                      : Colors
-                                                          .white // Color para 'en proceso'
-                            
-                                                  ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(
-                                          height: 10,
-                                        ),
-                                        Row(
-                                          children: [
-                                            Container(
-                                              width: MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  19,
-                                              height: MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  19,
-                                              decoration: BoxDecoration(
-                                                  color: listpedidosconductorruta[
-                                                                  index]
-                                                              .estado ==
-                                                          'en proceso'
-                                                      ? Color.fromARGB(
-                                                          255, 0, 0, 0)
-                                                      : Colors.white,
-                                                  borderRadius:
-                                                      BorderRadius.circular(50)),
-                                            ),
-                                            const SizedBox(
-                                              width: 10,
-                                            ),
-                                            Text(
-                                              "Punto de entrega",
-                                              style: TextStyle(
-                                                  color: listpedidosconductorruta[
-                                                                  index]
-                                                              .estado ==
-                                                          'en proceso'
-                                                      ? Color.fromARGB(
-                                                          255, 0, 0, 0)
-                                                      : Colors.white,
-                                                  fontWeight: FontWeight.bold),
-                                            )
-                                          ],
-                                        ),
-                                        const SizedBox(
-                                          height: 10,
-                                        ),
-                                        Text(
-                                          "${listpedidosconductorruta[index].direccion}",
+                                                  color: Color.fromARGB(255, 124, 58, 138)
+                                                ),)*/
+                                        ],
+                                      ),
+                                      const SizedBox(
+                                        height: 10,
+                                      ),
+                                      Text(
+                                          overflow: TextOverflow.ellipsis,
+                                          "Dirección: ${listpedidosconductorruta[index].direccion}",
                                           style: TextStyle(
                                               fontSize: MediaQuery.of(context)
                                                       .size
                                                       .width /
                                                   29,
                                               fontWeight: FontWeight.bold,
-                                              color:
-                                                  listpedidosconductorruta[index]
-                                                              .estado ==
-                                                          'en proceso'
-                                                      ? Color.fromARGB(
-                                                          255, 0, 0, 0)
-                                                      : Colors.white),
+                                              color: listpedidosconductorruta[
+                                                              index]
+                                                          .estado ==
+                                                      'en proceso'
+                                                  ? const Color.fromARGB(
+                                                      255, 0, 0, 0)
+                                                  : Colors.white),
                                           textAlign: TextAlign.left,
                                         ),
-                                        Text(
-                                            "Total: S/. ${listpedidosconductorruta[index].montoTotal}",
-                                            style: TextStyle(
-                                                color: listpedidosconductorruta[
-                                                                index]
-                                                            .estado ==
-                                                        'en proceso'
-                                                    ? Color.fromARGB(255, 0, 0, 0)
-                                                    : Colors.white,
-                                                fontSize: MediaQuery.of(context)
-                                                        .size
-                                                        .width /
-                                                    25,
-                                                fontWeight: FontWeight.bold)),
-                                        SizedBox(
-                                          height:
-                                              MediaQuery.of(context).size.width /
-                                                  9,
-                                        ),
-                                        Column(
-                                          //  crossAxisAlignment: CrossAxisAlignment.end,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Container(
-                                                width: MediaQuery.of(context)
-                                                    .size
-                                                    .width,
-                                                child: ElevatedButton(
-                                                  onPressed: () {
-                                                    pedidosProvider.rechazarPedidos(
-                                                        listpedidosconductorruta[
-                                                                index]
-                                                            .id);
-                                                  },
-                                                  style: ButtonStyle(
-                                                      backgroundColor:
-                                                          WidgetStateProperty.all(
-                                                              Color.fromARGB(255,
-                                                                  255, 110, 66))),
-                                                  child: const Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment.center,
-                                                    children: [
-                                                      Text("Rechazar pedido",
-                                                          style: TextStyle(
-                                                              color:
-                                                                  Colors.white)),
-                                                      SizedBox(width: 10),
-                                                      Icon(
-                                                          Icons
-                                                              .delete_forever_rounded,
-                                                          color: Colors.white),
-                                                    ],
-                                                  ),
-                                                )),
-                                            Container(
-                                              //color: Colors.grey,
+                                      
+
+
+                                      
+                                      Text(
+                                          "Total: S/. ${listpedidosconductorruta[index].montoTotal}",
+                                          style: TextStyle(
+                                              color: listpedidosconductorruta[
+                                                              index]
+                                                          .estado ==
+                                                      'en proceso'
+                                                  ? Color.fromARGB(255, 0, 0, 0)
+                                                  : Colors.white,
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  25,
+                                              fontWeight: FontWeight.bold)),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                9,
+                                      ),
+                                      Column(
+                                        //  crossAxisAlignment: CrossAxisAlignment.end,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Container(
                                               width: MediaQuery.of(context)
                                                   .size
                                                   .width,
-                                              child: listpedidosconductorruta[
+                                              child: ElevatedButton(
+                                                onPressed: () {
+                                                  pedidosProvider.rechazarPedidos(
+                                                      listpedidosconductorruta[
                                                               index]
-                                                          .estado !=
-                                                      'anulado'
-                                                  ? ElevatedButton(
-                                                      onPressed: () async {
-                                                        await getDetalleXUnPedido(
-                                                            listpedidosconductorruta[
-                                                                    index]
-                                                                .id);
-                                                        showDialog(
-                                                            context: context,
-                                                            builder: (BuildContext
-                                                                context) {
-                                                              return Dialog(
-                                                                child: Container(
-                                                                  padding:
-                                                                      const EdgeInsets
-                                                                          .all(
-                                                                          22),
-                                                                  decoration:
-                                                                      BoxDecoration(
-                                                                          //color: const Color.fromARGB(255, 124, 111, 111),
-                                                                          borderRadius:
-                                                                              BorderRadius.circular(20)),
-                                                                  height: MediaQuery.of(
-                                                                              context)
-                                                                          .size
-                                                                          .height /
-                                                                      2,
-                                                                  child: Column(
-                                                                    crossAxisAlignment:
-                                                                        CrossAxisAlignment
-                                                                            .start,
-                                                                    children: [
-                                                                      Row(
-                                                                        mainAxisAlignment:
-                                                                            MainAxisAlignment
-                                                                                .spaceBetween,
-                                                                        children: [
-                                                                          Text(
-                                                                            "Orden N#",
-                                                                            style: TextStyle(
-                                                                                fontWeight: FontWeight.bold,
-                                                                                fontSize: MediaQuery.of(context).size.width / 22),
-                                                                          ),
-                                                                          Text(
-                                                                            "${listpedidosconductorruta[index].id}",
-                                                                            style: TextStyle(
-                                                                                fontWeight: FontWeight.bold,
-                                                                                fontSize: MediaQuery.of(context).size.width / 22),
-                                                                          )
-                                                                        ],
-                                                                      ),
-                                                                      const SizedBox(
-                                                                        height:
-                                                                            20,
-                                                                      ),
-                                                                      Row(
-                                                                        children: [
-                                                                          Container(
-                                                                            height:
-                                                                                MediaQuery.of(context).size.height / 30,
-                                                                            width:
-                                                                                MediaQuery.of(context).size.height / 30,
-                                                                            decoration: BoxDecoration(
-                                                                                color: Colors.blue,
-                                                                                borderRadius: BorderRadius.circular(50)),
-                                                                          ),
-                                                                          const SizedBox(
-                                                                            width:
-                                                                                10,
-                                                                          ),
-                                                                          const Text(
-                                                                            "Cliente",
-                                                                            style: TextStyle(
-                                                                                fontWeight: FontWeight.bold,
-                                                                                fontSize: 20),
-                                                                          ),
-                                                                        ],
-                                                                      ),
-                                                                      Text(
-                                                                        "${listpedidosconductorruta[index].nombre}",
-                                                                        style: TextStyle(
-                                                                            fontSize:
-                                                                                MediaQuery.of(context).size.width / 28),
-                                                                      ),
-                                                                      Text(
-                                                                        "Teléfono: ${listpedidosconductorruta[index].telefono}",
-                                                                        style: TextStyle(
-                                                                            fontSize:
-                                                                                MediaQuery.of(context).size.width / 28),
-                                                                      ),
-                                                                      Text(
-                                                                        "Tipo: ${listpedidosconductorruta[index].tipo}",
-                                                                        style: TextStyle(
-                                                                            fontSize:
-                                                                                MediaQuery.of(context).size.width / 28),
-                                                                      ),
-                                                                      const SizedBox(
-                                                                        height:
-                                                                            20,
-                                                                      ),
-                                                                      Row(
-                                                                        children: [
-                                                                          Container(
-                                                                            height:
-                                                                                MediaQuery.of(context).size.height / 30,
-                                                                            width:
-                                                                                MediaQuery.of(context).size.height / 30,
-                                                                            decoration: BoxDecoration(
-                                                                                color: const Color.fromARGB(255, 223, 205, 84),
-                                                                                borderRadius: BorderRadius.circular(50)),
-                                                                          ),
-                                                                          const SizedBox(
-                                                                            width:
-                                                                                10,
-                                                                          ),
-                                                                          const Text(
-                                                                            "Contenido",
-                                                                            style: TextStyle(
-                                                                                fontWeight: FontWeight.bold,
-                                                                                fontSize: 20),
-                                                                          ),
-                                                                        ],
-                                                                      ),
-                                                                      Container(
-                                                                        height:
-                                                                            MediaQuery.of(context).size.height /
-                                                                                5,
-                                                                        // color: Colors.white,
-                                                                        child: ListView
-                                                                            .builder(
-                                                                          itemCount:
-                                                                              result.length,
-                                                                          itemBuilder:
-                                                                              (context,
-                                                                                  index) {
-                                                                            return Row(
-                                                                              children: [
-                                                                                Text(
-                                                                                  result[index]['nombre_prod'].toUpperCase() == 'BOTELLA 3L'
-                                                                                      ? result[index]['nombre_prod'].toUpperCase() + ' X PQTES : '
-                                                                                      : result[index]['nombre_prod'].toUpperCase() == 'BOTELLA 700ML'
-                                                                                          ? result[index]['nombre_prod'].toUpperCase() + ' X PQTES : '
-                                                                                          : result[index]['nombre_prod'].toUpperCase() == 'BIDON 20L'
-                                                                                              ? result[index]['nombre_prod'].toUpperCase() + ' X UND : '
-                                                                                              : result[index]['nombre_prod'].toUpperCase() == 'RECARGA'
-                                                                                                  ? result[index]['nombre_prod'].toUpperCase() + ' X UND : '
-                                                                                                  : result[index]['nombre_prod'].toUpperCase() == 'BOTELLA 7L'
-                                                                                                      ? result[index]['nombre_prod'].toUpperCase() + ' X UND : '
-                                                                                                      : result[index]['nombre_prod'].toUpperCase(),
-                                                                                  style: TextStyle(fontWeight: FontWeight.w500),
-                                                                                ),
-                                                                                const SizedBox(
-                                                                                  width: 10,
-                                                                                ),
-                                                                                Text(
-                                                                                  "${result[index]['cantidad']}",
-                                                                                  style: TextStyle(fontWeight: FontWeight.w500),
-                                                                                ),
-                                                                              ],
-                                                                            );
-                                                                          },
+                                                          .id);
+                                                },
+                                                style: ButtonStyle(
+                                                    backgroundColor:
+                                                        WidgetStateProperty.all(
+                                                            Color.fromARGB(255,
+                                                                255, 110, 66))),
+                                                child: const Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Text("Rechazar pedido",
+                                                        style: TextStyle(
+                                                            color:
+                                                                Colors.white)),
+                                                    SizedBox(width: 10),
+                                                    Icon(
+                                                        Icons
+                                                            .delete_forever_rounded,
+                                                        color: Colors.white),
+                                                  ],
+                                                ),
+                                              )),
+                                          Container(
+                                            //color: Colors.grey,
+                                            width: MediaQuery.of(context)
+                                                .size
+                                                .width,
+                                            child: listpedidosconductorruta[
+                                                            index]
+                                                        .estado !=
+                                                    'anulado'
+                                                ? ElevatedButton(
+                                                    onPressed: () async {
+                                                      await getDetalleXUnPedido(
+                                                          listpedidosconductorruta[
+                                                                  index]
+                                                              .id);
+                                                      showDialog(
+                                                          context: context,
+                                                          builder: (BuildContext
+                                                              context) {
+                                                            return Dialog(
+                                                              child: Container(
+                                                                padding:
+                                                                    const EdgeInsets
+                                                                        .all(
+                                                                        22),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                        //color: const Color.fromARGB(255, 124, 111, 111),
+                                                                        borderRadius:
+                                                                            BorderRadius.circular(20)),
+                                                                height: MediaQuery.of(
+                                                                            context)
+                                                                        .size
+                                                                        .height /
+                                                                    2,
+                                                                child: Column(
+                                                                  crossAxisAlignment:
+                                                                      CrossAxisAlignment
+                                                                          .start,
+                                                                  children: [
+                                                                    Row(
+                                                                      mainAxisAlignment:
+                                                                          MainAxisAlignment
+                                                                              .spaceBetween,
+                                                                      children: [
+                                                                        Text(
+                                                                          "Orden N#",
+                                                                          style: TextStyle(
+                                                                              fontWeight: FontWeight.bold,
+                                                                              fontSize: MediaQuery.of(context).size.width / 22),
                                                                         ),
-                                                                      )
-                                                                    ],
-                                                                  ),
+                                                                        Text(
+                                                                          "${listpedidosconductorruta[index].id}",
+                                                                          style: TextStyle(
+                                                                              fontWeight: FontWeight.bold,
+                                                                              fontSize: MediaQuery.of(context).size.width / 22),
+                                                                        )
+                                                                      ],
+                                                                    ),
+                                                                    const SizedBox(
+                                                                      height:
+                                                                          20,
+                                                                    ),
+                                                                    Row(
+                                                                      children: [
+                                                                        Container(
+                                                                          height:
+                                                                              MediaQuery.of(context).size.height / 30,
+                                                                          width:
+                                                                              MediaQuery.of(context).size.height / 30,
+                                                                          decoration: BoxDecoration(
+                                                                              color: Colors.blue,
+                                                                              borderRadius: BorderRadius.circular(50)),
+                                                                        ),
+                                                                        const SizedBox(
+                                                                          width:
+                                                                              10,
+                                                                        ),
+                                                                        const Text(
+                                                                          "Cliente",
+                                                                          style: TextStyle(
+                                                                              fontWeight: FontWeight.bold,
+                                                                              fontSize: 20),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                    Text(
+                                                                      "${listpedidosconductorruta[index].nombre}",
+                                                                      style: TextStyle(
+                                                                          fontSize:
+                                                                              MediaQuery.of(context).size.width / 28),
+                                                                    ),
+                                                                    /*Text(
+                                                                      "Teléfono: ${listpedidosconductorruta[index].telefono}",
+                                                                      style: TextStyle(
+                                                                          fontSize:
+                                                                              MediaQuery.of(context).size.width / 28),
+                                                                    ),*/
+                                                                    Text(
+                                                                      "Tipo: ${listpedidosconductorruta[index].tipo}",
+                                                                      style: TextStyle(
+                                                                          fontSize:
+                                                                              MediaQuery.of(context).size.width / 28),
+                                                                    ),
+                                                                    const SizedBox(
+                                                                      height:
+                                                                          20,
+                                                                    ),
+                                                                    Row(
+                                                                      children: [
+                                                                        Container(
+                                                                          height:
+                                                                              MediaQuery.of(context).size.height / 30,
+                                                                          width:
+                                                                              MediaQuery.of(context).size.height / 30,
+                                                                          decoration: BoxDecoration(
+                                                                              color: const Color.fromARGB(255, 223, 205, 84),
+                                                                              borderRadius: BorderRadius.circular(50)),
+                                                                        ),
+                                                                        const SizedBox(
+                                                                          width:
+                                                                              10,
+                                                                        ),
+                                                                        const Text(
+                                                                          "Contenido",
+                                                                          style: TextStyle(
+                                                                              fontWeight: FontWeight.bold,
+                                                                              fontSize: 20),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                    Container(
+                                                                      height:
+                                                                          MediaQuery.of(context).size.height /
+                                                                              5,
+                                                                      // color: Colors.white,
+                                                                      child: ListView
+                                                                          .builder(
+                                                                        itemCount:
+                                                                            result.length,
+                                                                        itemBuilder:
+                                                                            (context,
+                                                                                index) {
+                                                                          return Row(
+                                                                            children: [
+                                                                              Text(
+                                                                                result[index]['nombre_prod'].toUpperCase() == 'BOTELLA 3L'
+                                                                                    ? result[index]['nombre_prod'].toUpperCase() + ' X PQTES : '
+                                                                                    : result[index]['nombre_prod'].toUpperCase() == 'BOTELLA 700ML'
+                                                                                        ? result[index]['nombre_prod'].toUpperCase() + ' X PQTES : '
+                                                                                        : result[index]['nombre_prod'].toUpperCase() == 'BIDON 20L'
+                                                                                            ? result[index]['nombre_prod'].toUpperCase() + ' X UND : '
+                                                                                            : result[index]['nombre_prod'].toUpperCase() == 'RECARGA'
+                                                                                                ? result[index]['nombre_prod'].toUpperCase() + ' X UND : '
+                                                                                                : result[index]['nombre_prod'].toUpperCase() == 'BOTELLA 7L'
+                                                                                                    ? result[index]['nombre_prod'].toUpperCase() + ' X UND : '
+                                                                                                    : result[index]['nombre_prod'].toUpperCase(),
+                                                                                style: TextStyle(fontWeight: FontWeight.w500),
+                                                                              ),
+                                                                              const SizedBox(
+                                                                                width: 10,
+                                                                              ),
+                                                                              Text(
+                                                                                "${result[index]['cantidad']}",
+                                                                                style: TextStyle(fontWeight: FontWeight.w500),
+                                                                              ),
+                                                                            ],
+                                                                          );
+                                                                        },
+                                                                      ),
+                                                                    )
+                                                                  ],
                                                                 ),
-                                                              );
-                                                            });
-                            
-                                                        //  cantidadproducto = 0;
-                                                      },
-                                                      style: ButtonStyle(
-                                                          backgroundColor:
-                                                              WidgetStateProperty
-                                                                  .all(Colors
-                                                                      .amber)),
-                                                      child: const Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .center,
-                                                        children: [
-                                                          Text(
-                                                            "Detalles de pedido",
-                                                            style: TextStyle(
-                                                                color: const Color
-                                                                    .fromARGB(255,
-                                                                    0, 0, 0)),
-                                                          ),
-                                                          SizedBox(
-                                                            width: 10,
-                                                          ),
-                                                          Icon(
-                                                            Icons
-                                                                .visibility_outlined,
-                                                            color: Colors.black,
-                                                          )
-                                                        ],
-                                                      ))
-                                                  : null,
-                                            ),
-                                            Container(
-                                              width: MediaQuery.of(context)
-                                                  .size
-                                                  .width,
-                                              child: listpedidosconductorruta[
-                                                              index]
-                                                          .estado !=
-                                                      'anulado'
-                                                  ? ElevatedButton(
-                                                      onPressed: () {
-                                                        double latitudp =
-                                                            listpedidosconductorruta[
-                                                                    index]
-                                                                .latitud;
-                                                        double longitudp =
-                                                            listpedidosconductorruta[
-                                                                    index]
-                                                                .longitud;
-                                                        LatLng coordenadapedido =
-                                                            LatLng(latitudp,
-                                                                longitudp);
-                                                        print(
-                                                            "coordenada pedido");
-                                                        print(coordenadapedido);
-                            
-                                                        Cardpedidomodel carta = Cardpedidomodel(
-                                                            id: listpedidosconductorruta[index]
-                                                                .id,
-                                                            estado: listpedidosconductorruta[index]
-                                                                .estado,
-                                                            direccion:
-                                                                listpedidosconductorruta[index]
-                                                                    .direccion,
-                                                            detallepedido: result,
-                                                            nombres: listpedidosconductorruta[index]
-                                                                .nombre,
-                                                            apellidos:
-                                                                listpedidosconductorruta[index]
-                                                                    .apellidos,
-                                                            telefono:
-                                                                listpedidosconductorruta[index]
-                                                                    .telefono,
-                                                            tipo: listpedidosconductorruta[
-                                                                    index]
-                                                                .tipo,
-                                                            precio:
-                                                                listpedidosconductorruta[
-                                                                        index]
-                                                                    .montoTotal,
-                                                            beneficiadoid:
-                                                                listpedidosconductorruta[
-                                                                        index]
-                                                                    .beneficiadoID,
-                                                            comentarios:
-                                                                listpedidosconductorruta[
-                                                                        index]
-                                                                    .comentario);
-                            
-                                                        cardpedidoProvider
-                                                            .updateCard(carta);
-                            
-                                                        //
-                                                        //  updateestadoaceptar("en proceso",listpedidosconductorruta[index].id);
-                                                        pedidosProvider
-                                                            .updateestadoaceptar(
-                                                                "en proceso",
-                                                                listpedidosconductorruta[
-                                                                        index]
-                                                                    .id);
-                                                        //pedidosProvider.getPedidosConductor();
-                                                        setState(() {
-                                                          pedidoguardado =
-                                                              listpedidosconductorruta[
-                                                                      index]
-                                                                  .id;
-                                                          print(
-                                                              "$pedidoguardado");
-                                                        });
-                            
-                                                        print("hola enviando");
-                            
-                                                        socketService.emitEvent(
-                                                            'avisarAceptado', {
-                                                          "conductor":
-                                                              userProvider
-                                                                  .user?.id,
-                                                          "pedido":
-                                                              listpedidosconductorruta[
-                                                                      index]
-                                                                  .id
-                                                        });
-                            
-                                                        Navigator.push(
-                                                            context,
-                                                            MaterialPageRoute(
-                                                                builder: (context) =>
-                                                                    Navegacion(
-                                                                        destination:
-                                                                            coordenadapedido)));
-                            
-                                                        // Cierra el diálogo después de que la navegación se complete
-                                                      },
-                                                      style: ButtonStyle(
+                                                              ),
+                                                            );
+                                                          });
+
+                                                      //  cantidadproducto = 0;
+                                                    },
+                                                    style: ButtonStyle(
                                                         backgroundColor:
                                                             WidgetStateProperty
-                                                                .all(Color
-                                                                    .fromRGBO(
-                                                                        0,
-                                                                        38,
-                                                                        255,
-                                                                        1)),
-                                                      ),
-                                                      child: const Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .center,
-                                                        children: [
-                                                          Text("Aceptar pedido",
-                                                              style: TextStyle(
+                                                                .all(Colors
+                                                                    .amber)),
+                                                    child: const Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Text(
+                                                          "Detalles de pedido",
+                                                          style: TextStyle(
+                                                              color: const Color
+                                                                  .fromARGB(255,
+                                                                  0, 0, 0)),
+                                                        ),
+                                                        SizedBox(
+                                                          width: 10,
+                                                        ),
+                                                        Icon(
+                                                          Icons
+                                                              .visibility_outlined,
+                                                          color: Colors.black,
+                                                        )
+                                                      ],
+                                                    ))
+                                                : null,
+                                          ),
+                                          Container(
+                                            width: MediaQuery.of(context)
+                                                .size
+                                                .width,
+                                            child: listpedidosconductorruta[
+                                                            index]
+                                                        .estado !=
+                                                    'anulado'
+                                                ? ElevatedButton(
+                                                    onPressed: () {
+                                                      double latitudp =
+                                                          listpedidosconductorruta[
+                                                                  index]
+                                                              .latitud;
+                                                      double longitudp =
+                                                          listpedidosconductorruta[
+                                                                  index]
+                                                              .longitud;
+                                                      LatLng coordenadapedido =
+                                                          LatLng(latitudp,
+                                                              longitudp);
+                                                      print(
+                                                          "coordenada pedido");
+                                                      print(coordenadapedido);
+
+                                                      Cardpedidomodel carta = Cardpedidomodel(
+                                                          id: listpedidosconductorruta[index]
+                                                              .id,
+                                                          estado: listpedidosconductorruta[index]
+                                                              .estado,
+                                                          direccion:
+                                                              listpedidosconductorruta[index]
+                                                                  .direccion,
+                                                          detallepedido: result,
+                                                          nombres: listpedidosconductorruta[index]
+                                                              .nombre,
+                                                          apellidos:
+                                                              listpedidosconductorruta[index]
+                                                                  .apellidos,
+                                                          telefono:
+                                                              listpedidosconductorruta[index]
+                                                                  .telefono,
+                                                          tipo: listpedidosconductorruta[
+                                                                  index]
+                                                              .tipo,
+                                                          precio:
+                                                              listpedidosconductorruta[
+                                                                      index]
+                                                                  .montoTotal,
+                                                          beneficiadoid:
+                                                              listpedidosconductorruta[
+                                                                      index]
+                                                                  .beneficiadoID,
+                                                          comentarios:
+                                                              listpedidosconductorruta[
+                                                                      index]
+                                                                  .comentario);
+
+                                                      cardpedidoProvider
+                                                          .updateCard(carta);
+
+                                                      //
+                                                      //  updateestadoaceptar("en proceso",listpedidosconductorruta[index].id);
+                                                      pedidosProvider
+                                                          .updateestadoaceptar(
+                                                              "en proceso",
+                                                              listpedidosconductorruta[
+                                                                      index]
+                                                                  .id);
+                                                      //pedidosProvider.getPedidosConductor();
+                                                      setState(() {
+                                                        pedidoguardado =
+                                                            listpedidosconductorruta[
+                                                                    index]
+                                                                .id;
+                                                        print(
+                                                            "$pedidoguardado");
+                                                      });
+
+                                                      print("hola enviando");
+
+                                                      // ACEPTADO POR LOS PEDIDOS
+                                                      aceptadoPor(
+                                                          userProvider.user!.id,
+                                                          listpedidosconductorruta[
+                                                                  index]
+                                                              .id,
+                                                          index);
+                                                      //
+
+                                                      socketService.emitEvent(
+                                                          'avisarAceptado', {
+                                                        "conductor":
+                                                            userProvider
+                                                                .user?.id,
+                                                        "nombre": userProvider
+                                                            .user?.nombre,
+                                                        "pedido":
+                                                            listpedidosconductorruta[
+                                                                    index]
+                                                                .id
+                                                      });
+
+                                                      Navigator.push(
+                                                          context,
+                                                          MaterialPageRoute(
+                                                              builder: (context) =>
+                                                                  Navegacion(
+                                                                      destination:
+                                                                          coordenadapedido)));
+
+                                                      // Cierra el diálogo después de que la navegación se complete
+                                                    },
+                                                    style: ButtonStyle(
+                                                      backgroundColor:
+                                                          WidgetStateProperty
+                                                              .all(const Color
+                                                                  .fromRGBO(0,
+                                                                  38, 255, 1)),
+                                                    ),
+                                                    child: const Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Text("Aceptar pedido",
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .white)),
+                                                        SizedBox(width: 10),
+                                                        Icon(
+                                                            Icons
+                                                                .navigation_outlined,
+                                                            color:
+                                                                Colors.white),
+                                                      ],
+                                                    ),
+                                                  )
+                                                : null,
+                                          ),
+                                          Container(
+                                              width: MediaQuery.of(context)
+                                                  .size
+                                                  .width,
+                                              child: ElevatedButton(
+                                                  onPressed: () async {
+                                                    LatLng destinationNew =
+                                                        LatLng(
+                                                      listpedidosconductorruta[
+                                                              index]
+                                                          .latitud,
+                                                      listpedidosconductorruta[
+                                                              index]
+                                                          .longitud,
+                                                    );
+                                                    List<LatLng> routePoints =
+                                                        await getPolypoints(
+                                                            _currentPosition,
+                                                            destinationNew);
+
+                                                    setState(() {
+                                                      polypoints = routePoints;
+                                                    });
+
+                                                    showDialog(
+                                                        context: context,
+                                                        builder: (BuildContext
+                                                            context) {
+                                                          return Dialog(
+                                                            child: Container(
+                                                              padding:
+                                                                  EdgeInsets
+                                                                      .all(8),
+                                                              height: MediaQuery.of(
+                                                                          context)
+                                                                      .size
+                                                                      .height *
+                                                                  0.55,
+                                                              width: MediaQuery.of(
+                                                                          context)
+                                                                      .size
+                                                                      .width *
+                                                                  0.75,
+                                                              decoration: BoxDecoration(
                                                                   color: Colors
-                                                                      .white)),
-                                                          SizedBox(width: 10),
-                                                          Icon(
-                                                              Icons
-                                                                  .navigation_outlined,
-                                                              color:
-                                                                  Colors.white),
-                                                        ],
-                                                      ),
-                                                    )
-                                                  : null,
-                                            )
-                                          ],
-                                        )
-                                      ],
-                                    ),
-                                  );
-                                }) 
-                          ); /*const Center(
-                                        child: CircularProgressIndicator(
-                                          color: Colors.pink,
-                                        ),
-                                      );*/
+                                                                      .white,
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              20)),
+                                                              // color: Color.fromARGB(255, 209, 209, 209),
+                                                              child: GoogleMap(
+                                                                initialCameraPosition:
+                                                                    CameraPosition(
+                                                                  zoom:
+                                                                      _currentzoom,
+                                                                  target:
+                                                                      _currentPosition,
+                                                                  tilt: _tilt,
+                                                                ),
+                                                                mapType: MapType
+                                                                    .normal,
+                                                                // style: _mapStyle,
+                                                                onMapCreated:
+                                                                    (GoogleMapController
+                                                                        controller) {
+                                                                  _mapController =
+                                                                      controller;
+                                                                  // Asegúrate de que el mapa esté completamente cargado antes de llamar a animateCamera
+                                                                  // _mapController?.animateCamera(CameraUpdate.newLatLng(_currentPosition));
+                                                                },
+
+                                                                polylines: {
+                                                                  Polyline(
+                                                                    polylineId:
+                                                                        PolylineId(
+                                                                            "RUTA"),
+                                                                    points:
+                                                                        polypoints,
+                                                                    color: Color
+                                                                        .fromARGB(
+                                                                            255,
+                                                                            163,
+                                                                            5,
+                                                                            236),
+                                                                    width: 5,
+                                                                  ),
+                                                                },
+                                                                markers: {
+                                                                  if (_originIcon !=
+                                                                      null)
+                                                                    Marker(
+                                                                      markerId:
+                                                                          MarkerId(
+                                                                              "origen"),
+                                                                      position:
+                                                                          _currentPosition,
+                                                                      icon:
+                                                                          _originIcon!,
+                                                                      //rotation: _currentBearing - 245,
+                                                                    ),
+                                                                  if (_destinationIcon !=
+                                                                      null)
+                                                                    Marker(
+                                                                      markerId:
+                                                                          MarkerId(
+                                                                              "destino"),
+                                                                      position: LatLng(
+                                                                          listpedidosconductorruta[index]
+                                                                              .latitud,
+                                                                          listpedidosconductorruta[index]
+                                                                              .longitud),
+                                                                      icon:
+                                                                          _destinationIcon!,
+                                                                      //rotation: _currentBearing,
+                                                                    ),
+                                                                },
+                                                              ),
+                                                            ),
+                                                          );
+                                                        });
+                                                  },
+                                                  child: const Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      Text(
+                                                          "Detalle de dirección"),
+                                                      Icon(Icons
+                                                          .location_on_outlined)
+                                                    ],
+                                                  )))
+                                        ],
+                                      )
+                                    ],
+                                  ),
+                                );
+                              });
+                          /*const Center(
+                                            child: CircularProgressIndicator(
+                                              color: Colors.pink,
+                                            ),
+                                          );*/
                         },
-                      )
+                      ),
+
                       /* : Container(
-                              height: MediaQuery.of(context).size.height / 4,
-                              //color: Colors.grey,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.hourglass_bottom_sharp,
-                                          color: Color.fromARGB(255, 255, 255, 255),
-                                          size: MediaQuery.of(context).size.width /
-                                              10)
-                                      .animate()
-                                      .shakeY(),
-                                  Text(
-                                    "Espera tus pedidos...",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                        fontSize:
-                                            MediaQuery.of(context).size.width / 20),
-                                  )
-                                ],
-                              ),
-                            ),*/
-                      )
+                                height: MediaQuery.of(context).size.height / 4,
+                                //color: Colors.grey,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.hourglass_bottom_sharp,
+                                            color: Color.fromARGB(255, 255, 255, 255),
+                                            size: MediaQuery.of(context).size.width /
+                                                10)
+                                        .animate()
+                                        .shakeY(),
+                                    Text(
+                                      "Espera tus pedidos...",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                          fontSize:
+                                              MediaQuery.of(context).size.width / 20),
+                                    )
+                                  ],
+                                ),
+                              ),*/
+                    ),
+                  )
                 ],
               ),
             ),

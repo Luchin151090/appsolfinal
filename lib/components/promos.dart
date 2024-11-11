@@ -4,6 +4,7 @@ import 'package:appsol_final/models/promocion_model.dart';
 import 'package:appsol_final/models/producto_promocion_model.dart';
 import 'package:appsol_final/provider/pedido_provider.dart';
 import 'package:appsol_final/models/pedido_model.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -422,7 +423,7 @@ class _PromosState extends State<Promos> {
                                           color: Colors.white,
                                           image: DecorationImage(
                                               image:
-                                                  NetworkImage(promocion.foto),
+                                                  CachedNetworkImageProvider(promocion.foto),
                                               fit: BoxFit.scaleDown)),
                                     ),
                                     Container(
@@ -573,6 +574,10 @@ class _PromosState extends State<Promos> {
                                         color: Color.fromARGB(255, 255, 255, 255)),
                                   ),
                                 ),
+
+
+
+                                
                               ],
                             ),
                           ),
@@ -595,12 +600,36 @@ class _PromosState extends State<Promos> {
                               height: largoActual*0.007,
                             ),
                               Container(
-                                width: largoActual*0.083,
+                                width: largoActual*0.072,
                               height: largoActual*0.072,
                               //color: Colors.grey,
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                borderRadius: BorderRadius.circular(50)
+                              ),
                               margin:
                                   EdgeInsets.only(right: anchoActual * 0.035),
-                                child:  ElevatedButton(
+                                child: IconButton(
+                                  onPressed: almenosUno
+                                          ? () async {
+                                              obtenerPromos();
+                                  
+                                              pedidoMio = PedidoModel(
+                                                seleccionados: productosProvider,
+                                                seleccionadosPromo:
+                                                    promosProvider,
+                                                cantidadProd:
+                                                    productosProvider.length +
+                                                        promosProvider.length,
+                                                totalProds: totalProvider,
+                                                envio: envio,
+                                              );
+                                              Provider.of<PedidoProvider>(context,
+                                                      listen: false)
+                                                  .updatePedido(pedidoMio);
+                                            }
+                                          : null,
+                                 icon: Icon(Icons.add_shopping_cart_sharp,color: Colors.white,size: anchoActual*0.065,)) /* ElevatedButton(
                                       onPressed: almenosUno
                                           ? () async {
                                               obtenerPromos();
@@ -629,7 +658,7 @@ class _PromosState extends State<Promos> {
                                           Icons.add_shopping_cart_rounded,
                                           color: Colors.white,
                                           size: anchoActual*0.073,
-                                      )),
+                                      )),*/
                                 
                               ),
                             ],

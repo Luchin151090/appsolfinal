@@ -17,6 +17,8 @@ class PedidoconductorProvider extends ChangeNotifier {
   List<Pedido> get pedidos => listPedidos;
   int? rutaIDGET = 0;
   int? _rutaActual;
+  String? _nombreConductor;
+
 
   cargarPreferencias() async {
    /* SharedPreferences rutaidget = await SharedPreferences.getInstance();
@@ -26,6 +28,15 @@ class PedidoconductorProvider extends ChangeNotifier {
 */
     await getPedidosConductor();
   }
+
+  void setAceptadopor(dynamic nombre)async{
+    _nombreConductor = nombre.toString();
+  }
+
+  String? getnombreconductor(){
+    return _nombreConductor;
+  }
+
   Future<dynamic> getlastrutaconductor() async {
     print("-----1---");
     var res = await http.get(Uri.parse(apiUrl + '/api/lastrutafasty'),
@@ -114,6 +125,8 @@ class PedidoconductorProvider extends ChangeNotifier {
     listPedidos = pedidos;
     notifyListeners();
   }
+
+
 
   void setRutaActual(int idRuta){
     _rutaActual = idRuta;

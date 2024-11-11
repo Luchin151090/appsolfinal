@@ -34,15 +34,35 @@ class _CobrarState extends State<Cobrar> {
   List<File> _images = [];
   String? tipoPago;
   final List<String> _tipoPagoItems = ['Yape', 'Plin', 'Otro'];
-  final ImagePicker _picker = ImagePicker();
+final ImagePicker _picker = ImagePicker();
 
-  Future<void> getImageFromCamera() async {
+  Future<String?> getImageFromCamera() async {
     try {
-      await _picker.pickImage(source: ImageSource.camera);
-      // No es necesario hacer nada con la foto, ya que se guarda automáticamente en el dispositivo.
+      final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
+      if (photo == null) {
+        print('No se seleccionó ninguna imagen.');
+        return null;
+      }
+
+      // Directorio donde se guardará la imagen en el almacenamiento externo
+      final Directory? externalDir = await getExternalStorageDirectory();
+      if (externalDir == null) {
+        print('No se pudo obtener el directorio externo.');
+        return null;
+      }
+
+      String fileName = 'IMG${DateTime.now().millisecondsSinceEpoch}.jpg';
+      String filePath = path.join(externalDir.path, fileName);
+
+      File imageFile = File(photo.path);
+      await imageFile.copy(filePath);
+      print('Imagen guardada en: $filePath');
+
+      // Devuelve la ruta para que sea accesible en otras funciones
+      return filePath;
     } catch (e) {
-      // Maneja cualquier error que ocurra al intentar abrir la cámara
       print('Error al abrir la cámara: $e');
+      return null;
     }
   }
 
@@ -323,7 +343,16 @@ class _CobrarState extends State<Cobrar> {
                                                 /*await _takePicture(
                                                     cardpedidoProvider.pedido!.id
                                                         .toString());*/
-                                                getImageFromCamera();
+                                                
+                                                String? imagePath =
+                                                    await getImageFromCamera();
+                                                if (imagePath != null) {
+                                                  // Aquí puedes hacer algo con la ruta de la imagen
+                                                  print(
+                                                      'Imagen guardada en: $imagePath');
+                                                  // Por ejemplo, podrías actualizar el pedido con la ruta de la imagen
+                                                  // await updatePedidoConImagen(cardpedidoProvider.pedido?.id, imagePath);
+                                                }
 
                                                 // Navega a la pantalla Driver1 después de completar todas las operaciones
                                                 // Navigator.pop(context,const Driver1());

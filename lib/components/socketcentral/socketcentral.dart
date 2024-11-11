@@ -155,4 +155,8 @@ class SocketService {
   void onPedidoAnadido(Function(dynamic) callback) {
     listenToEvent('pedidoañadido', callback);
   }
+
+ /* void notificarClientes(Function(dynamic) callback){
+    listenToEvent('depósito', callback);
+  }*/
 }

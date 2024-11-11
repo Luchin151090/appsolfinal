@@ -12,6 +12,8 @@ import 'package:appsol_final/provider/user_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 //import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
@@ -163,7 +165,7 @@ class _PreloginState extends State<Prelogin> {
     }
   }
 
-  Future<dynamic> loginsol(username, password,BuildContext context) async {
+  Future<dynamic> loginsol(username, password, BuildContext context) async {
     try {
       // print("------loginsool");
       // print(username);
@@ -178,8 +180,8 @@ class _PreloginState extends State<Prelogin> {
         // CLIENTE
 
         if (data['usuario']['rol_id'] == 4) {
-          // print("dentro del cliente");
-          // print("userDataCopy");
+           print("dentro del cliente");
+           print("userDataCopy");
           SharedPreferences userDataCopy =
               await SharedPreferences.getInstance();
           userDataCopy.setString('token', data['token']);
@@ -201,12 +203,12 @@ class _PreloginState extends State<Prelogin> {
               'quiereRetirarcopy', data['usuario']['quiereretirar']);
           userDataCopy.setString('suscripcioncopy',
               data['usuario']['suscripcion'] ?? 'Sin suscripción');
-          //  print(userDataCopy);
-          // print("-----------------------------------------------------------");
-          /*print("cli");
+           //print(userDataCopy.getInstance('frecuenciacopy'));
+           print("-----------------------------------------------------------");
+          print("cli");
           print("userData");
           // data['usuario']['nombre']
-          print(data['usuario']['id']);*/
+          print(data['usuario']['id']);
           await recargas(data['usuario']['id']);
           // await getBidonCliente(data['usuario']['id']);
           userData = UserModel(
@@ -246,9 +248,9 @@ class _PreloginState extends State<Prelogin> {
             rol = 5;
             id = userData.id!;
           });
-           // Iniciar la conexión de WebSocket si es conductor
-           // Conectamos al servidor de WebSocket
-       /* var socketService = Provider.of<SocketService>(context, listen: false);
+          // Iniciar la conexión de WebSocket si es conductor
+          // Conectamos al servidor de WebSocket
+          /* var socketService = Provider.of<SocketService>(context, listen: false);
           socketService.connectToServer();*/
         }
         // GERENTE
@@ -362,434 +364,6 @@ class _PreloginState extends State<Prelogin> {
   }
 
   // VISTA DEL WIDGET
-  Widget prelogeo(String tama, double ancho, double alto, double texto1) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Image.asset(
-            'lib/imagenes/aguamarina2.png',
-            fit: BoxFit.cover,
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(40.0),
-          child: Container(
-              height: MediaQuery.of(context).size.height,
-              child: SingleChildScrollView(
-                child: Column(
-                 // mainAxisAlignment: MainAxisAlignment.center,
-                  //crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: MediaQuery.of(context).size.width / 3,
-                      height: MediaQuery.of(context).size.height / 4.5,
-                      decoration: const BoxDecoration(
-                          image: DecorationImage(
-                              image: AssetImage('lib/imagenes/nuevito.png'))),
-                    ),
-                    Container(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Inicia Sesión",
-                            style: TextStyle(
-                                fontSize: MediaQuery.of(context).size.width / 7.9,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            "Llevando vida a tu hogar!",
-                            style: TextStyle(
-                                fontSize: MediaQuery.of(context).size.width / 18.5,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(
-                            height: 0,
-                          ),
-                          Form(
-                            key: _formKey,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                const SizedBox(
-                                  height: 30,
-                                ),
-                                Container(
-                                  decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(18)),
-                                  child: TextFormField(
-                                    controller: _usuario,
-                                    keyboardType: TextInputType.visiblePassword,
-                                    decoration: InputDecoration(
-                                        //necesario para login
-                
-                                        labelText: 'Usuario',
-                                        hintText: 'Usuario',
-                                        border: InputBorder.none,
-                                        isDense: true,
-                                        labelStyle: TextStyle(
-                                            fontSize: texto1,
-                                            fontWeight: FontWeight.normal,
-                                            color: Colors.grey),
-                                        hintStyle: TextStyle(
-                                            fontSize: texto1, color: Colors.grey),
-                                        prefixIcon: Icon(
-                                          Icons.person_outline_outlined,
-                                          color: Colors.grey,
-                                          size: texto1,
-                                        )),
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Por favor, ingrese su usuario';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(
-                                  height: 20,
-                                ),
-                                Container(
-                                  decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(18)),
-                                  child: TextFormField(
-                                    controller: _contrasena,
-                                    keyboardType: TextInputType.visiblePassword,
-                                    obscureText: _obscureText1,
-                                    decoration: InputDecoration(
-                                      labelText: 'Contraseña',
-                                      hintText: 'Contraseña',
-                                      isDense: true,
-                                      border: InputBorder.none,
-                                      labelStyle: TextStyle(
-                                          fontSize: texto1,
-                                          fontWeight: FontWeight.normal,
-                                          color: Colors.grey),
-                                      hintStyle: TextStyle(
-                                          fontSize: texto1, color: Colors.grey),
-                                      suffixIcon: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            _obscureText1 = !_obscureText1;
-                                          });
-                                        },
-                                        child: Icon(
-                                          _obscureText1
-                                              ? Icons.visibility_outlined
-                                              : Icons.visibility_off,
-                                          color: Colors.grey,
-                                          size: texto1,
-                                        ),
-                                      ),
-                                      prefixIcon: Icon(
-                                        Icons.lock_outline,
-                                        size: texto1, //30,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    //VALIDACION DE CONTRASEÑA ORIGINAL
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Por favor, ingrese una contraseña';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                          //color: Colors.blue,
-                          borderRadius: BorderRadius.circular(10)),
-                      margin: EdgeInsets.only(
-                          left: MediaQuery.of(context).size.width /
-                              3), //MediaQuery.of(context).size.width / 3),
-                      child: TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const Recuperacion()),
-                            );
-                          },
-                
-                          //RECUPERACION DE CONTRASEÑA DEL ARCHIVO ORIGINAL
-                          child: Text(
-                            "¿Olvidaste contraseña?",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: MediaQuery.of(context).size.width / 26,
-                                color: const Color.fromARGB(255, 255, 255, 255)),
-                          )),
-                    ),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                    Center(
-                      child: Container(
-                        width: ancho * 2.5, //MediaQuery.of(context).size.width,
-                        height: alto / 2.85, //50,
-                        child: ElevatedButton(
-                            onPressed: () async {
-                              //INICIAR SESIÓN DEL ARCHIVO ORIGINAL
-                
-                              if (_formKey.currentState!.validate()) {
-                                showDialog(
-                                    context: context,
-                                    builder: (context) {
-                                      return const Center(
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                        ),
-                                      );
-                                    });
-                                try {
-                                  await loginsol(_usuario.text, _contrasena.text,context);
-                
-                                  if (status == 200) {
-                                    Navigator.of(context)
-                                        .pop(); // Cerrar el primer AlertDialog
-                
-                                    print("q pasa=");
-                                    //SI ES CLIENTE
-                                    if (rol == 4) {
-                                      await tieneUbicaciones(userData.id);
-                                      await tienePedidos(userData.id);
-                                      if (noTienePedidosEsNuevo) {
-                                        setState(() {
-                                          userData.esNuevo = true;
-                                        });
-                                      } else {
-                                        setState(() {
-                                          userData.esNuevo = false;
-                                        });
-                                      }
-                                      //SI YA TIENE UBICACIONES INGRESA DIRECTAMENTE A LA BARRA DE AVEGACION
-                                      if (yaTieneUbicaciones == true) {
-                                        //print("YA tiene unibicaciones");
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  const BarraNavegacion(
-                                                      indice: 0, subIndice: 0)),
-                                        );
-                                        //SI NO TIENE UBICACIONES INGRESA A UBICACION
-                                      } else {
-                                        //print("NO tiene unibicaciones");
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  const LocationPermissionScreen()),
-                                        );
-                                      }
-                
-                                      //SI ES CONDUCTOR
-                                    } else if (rol == 5) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) => const Driver()),
-                                      );
-                
-                                      //SI ES GERENTE
-                                    } else if (rol == 3) {
-                                      //por cmabiar
-                                    }
-                                    //SI NO ESTA REGISTRADO
-                                  } else if (status == 401) {
-                                    Navigator.of(context)
-                                        .pop(); // Cerrar el primer AlertDialog
-                
-                                    showDialog(
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        return Dialog(
-                                          child: Container(
-                                            padding: const EdgeInsets.all(10),
-                                            height:
-                                                MediaQuery.of(context).size.height /
-                                                    5,
-                                            child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Container(
-                                                  width: 50,
-                                                  height: 50,
-                                                  decoration: const BoxDecoration(
-                                                      image: DecorationImage(
-                                                          image: AssetImage(
-                                                              'lib/imagenes/nuevecito.png'))),
-                                                ),
-                                                const SizedBox(
-                                                  height: 19,
-                                                ),
-                                                Text(
-                                                  "Credenciales inválidas.",
-                                                  style: TextStyle(
-                                                      fontWeight: FontWeight.bold,
-                                                      fontSize: MediaQuery.of(context)
-                                                              .size
-                                                              .width /
-                                                          25,
-                                                      color: const Color.fromARGB(
-                                                          255, 2, 100, 181)),
-                                                ),
-                                                const SizedBox(
-                                                  height: 19,
-                                                ),
-                                                TextButton(
-                                                    onPressed: () {
-                                                      Navigator.pop(context);
-                                                    },
-                                                    child: const Text(
-                                                      "OK",
-                                                      style: TextStyle(
-                                                          fontWeight: FontWeight.bold,
-                                                          fontSize: 24,
-                                                          color: const Color.fromARGB(
-                                                              255, 4, 93, 167)),
-                                                    ))
-                                              ],
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  } else if (status == 404) {
-                                    Navigator.of(context).pop();
-                                    showDialog(
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        return Dialog(
-                                          child: Container(
-                                            padding: const EdgeInsets.all(10),
-                                            height:
-                                                MediaQuery.of(context).size.height /
-                                                    5,
-                                            child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Container(
-                                                  width: 50,
-                                                  height: 50,
-                                                  decoration: const BoxDecoration(
-                                                      image: DecorationImage(
-                                                          image: AssetImage(
-                                                              'lib/imagenes/nuevecito.png'))),
-                                                ),
-                                                const SizedBox(
-                                                  height: 19,
-                                                ),
-                                                Text(
-                                                  "Usuario no existente. Intente de nuevo.",
-                                                  style: TextStyle(
-                                                      fontWeight: FontWeight.bold,
-                                                      fontSize: MediaQuery.of(context)
-                                                              .size
-                                                              .width /
-                                                          25,
-                                                      color: const Color.fromARGB(
-                                                          255, 2, 100, 181)),
-                                                ),
-                                                const SizedBox(
-                                                  height: 19,
-                                                ),
-                                                TextButton(
-                                                    onPressed: () {
-                                                      Navigator.pop(context);
-                                                    },
-                                                    child: const Text(
-                                                      "OK",
-                                                      style: TextStyle(
-                                                          fontWeight: FontWeight.bold,
-                                                          fontSize: 24,
-                                                          color: const Color.fromARGB(
-                                                              255, 4, 93, 167)),
-                                                    ))
-                                              ],
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  }
-                                } catch (e) {
-                                  /*print(
-                                        "Excepción durante el inicio de sesión: $e");*/
-                                }
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(18))),
-                            child: Text(
-                              "Iniciar Sesión",
-                              style: TextStyle(
-                                  color: const Color.fromRGBO(0, 77, 225, 1),
-                                  fontSize: texto1 * 1.7, //30,
-                                  fontWeight: FontWeight.bold),
-                            )),
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "¿Todavía no tienes cuenta?",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize:
-                                  MediaQuery.of(context).size.width / 25.5, //16,
-                              color: Colors.white),
-                        ),
-                        TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => const Formucli()),
-                              );
-                            },
-                            child: Text(
-                              "Registrarse",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize:
-                                    MediaQuery.of(context).size.width / 25.5, //16,
-                
-                                color: const Color.fromRGBO(84, 226, 132, 1),
-                              ),
-                            ))
-                      ],
-                    )
-                  ],
-                ),
-              ),
-            ),
-          ),
-        
-      ],
-    );
-  }
 
   //ESTA ES LA VISTA PRINCIPAL
   @override
@@ -798,28 +372,482 @@ class _PreloginState extends State<Prelogin> {
         backgroundColor: const Color.fromARGB(255, 230, 230, 230),
         body: Padding(
           padding: const EdgeInsets.all(0.0),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth <= Breakpoint.xsmall) {
-                return prelogeo("XS", 100, 85, 10);
-              } else if (constraints.maxWidth <= Breakpoint.avgsmall) {
-                return prelogeo("avS", 110, 100, 13.0);
-              } else if (constraints.maxWidth <= Breakpoint.small) {
-                return prelogeo("S", 140, 140, 18); // PUNTO CLAVE
-              } else if (constraints.maxWidth <= Breakpoint.avgmedium) {
-                return prelogeo("avM", 160, 160, 18);
-              } else if (constraints.maxWidth <= Breakpoint.medium) {
-                return prelogeo("M", 220, 180, 18);
-              } else if (constraints.maxWidth <= Breakpoint.avglarg) {
-                return prelogeo("avL", 220, 200, 18);
-              } else if (constraints.maxWidth <= Breakpoint.large) {
-                return prelogeo("L", 220, 220, 18);
-              } else if (constraints.maxWidth <= Breakpoint.avgxlarge) {
-                return prelogeo("avXL", 240, 240, 18);
-              } else {
-                return prelogeo("XL", 260, 260, 18);
-              }
-            },
+          child: SingleChildScrollView(
+            // reverse: true,
+            physics: const BouncingScrollPhysics(),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Image.asset(
+                    'lib/imagenes/aguamarina2.png',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(0.0),
+                  child: Container(
+                    height: MediaQuery.of(context).size.height,
+                    child: Column(
+                      // mainAxisAlignment: MainAxisAlignment.center,
+                      //crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(height: 77.sp),
+                        Container(
+                          width: 156.w,
+                          height: 127.h,
+                          decoration: const BoxDecoration(
+                              image: DecorationImage(
+                                  image:
+                                      AssetImage('lib/imagenes/nuevito.png'))
+                                      ),
+                        ),
+                        SizedBox(height: 43.h),
+                        Container(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                "Inicia sesión",
+                                style: GoogleFonts.poppins(
+                                    fontSize: 24.sp,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              SizedBox(height: 19.h),
+                              Text(
+                                "Llevando vida a tu hogar",
+                                style: GoogleFonts.poppins(
+                                    fontSize: 24.sp,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500),
+                              ),
+                              const SizedBox(
+                                height: 0,
+                              ),
+                              Form(
+                                key: _formKey,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      height: 34.h,
+                                    ),
+                                    Container(
+                                      height: 48.h,
+                                      width: 332.w,
+                                      padding: EdgeInsets.only(left: 20,right: 20),
+                                      decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(30.r)),
+                                      child: TextFormField(
+                                        controller: _usuario,
+                                        keyboardType:
+                                            TextInputType.visiblePassword,
+                                        decoration: InputDecoration(
+                                            //necesario para login
+
+                                            labelText: 'Usuario',
+                                            hintText: 'Usuario',
+                                            border: InputBorder.none,
+                                            isDense: true,
+                                            labelStyle: GoogleFonts.poppins(
+                                                fontSize: 16.sp,
+                                                fontWeight: FontWeight.normal,
+                                                color: Colors.grey),
+                                            hintStyle: GoogleFonts.poppins(
+                                                fontSize: 16.sp,
+                                                color: Colors.grey),
+                                            /*prefixIcon: Icon(
+                                              Icons.person_outline_outlined,
+                                              color: Colors.grey,
+                                              size: 16.sp,
+                                            )*/
+                                            ),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Por favor, ingrese su usuario';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      height: 34.h,
+                                    ),
+                                    Container(
+                                      height: 48.h,
+                                      width: 332.w,
+                                      padding: EdgeInsets.only(left: 20,right: 20),
+                                      decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(30.r)),
+                                      child: TextFormField(
+                                        controller: _contrasena,
+                                        keyboardType:
+                                            TextInputType.visiblePassword,
+                                        obscureText: _obscureText1,
+                                        decoration: InputDecoration(
+                                          labelText: 'Contraseña',
+                                          hintText: 'Contraseña',
+                                          isDense: true,
+                                          border: InputBorder.none,
+                                          labelStyle: GoogleFonts.poppins(
+                                              fontSize: 16.sp,
+                                              fontWeight: FontWeight.normal,
+                                              color: Colors.grey),
+                                          hintStyle: GoogleFonts.poppins(
+                                              fontSize: 16.sp,
+                                              color: Colors.grey),
+                                          suffixIcon: GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                _obscureText1 = !_obscureText1;
+                                              });
+                                            },
+                                            child: Icon(
+                                              _obscureText1
+                                                  ? Icons.visibility_outlined
+                                                  : Icons.visibility_off,
+                                              color: Colors.grey,
+                                              size: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  18.5,
+                                            ),
+                                          ),
+                                         /* prefixIcon: Icon(
+                                            Icons.lock_outline,
+                                            size: 16.sp, //30,
+                                            color: Colors.grey,
+                                          ),*/
+                                        ),
+                                        //VALIDACION DE CONTRASEÑA ORIGINAL
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Por favor, ingrese una contraseña';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          height: 19.h,
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                              //color: Colors.blue,
+                              borderRadius: BorderRadius.circular(10)),
+                          margin: EdgeInsets.only(
+                              left: MediaQuery.of(context).size.width /
+                                  3), //MediaQuery.of(context).size.width / 3),
+                          child: TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          const Recuperacion()),
+                                );
+                              },
+
+                              //RECUPERACION DE CONTRASEÑA DEL ARCHIVO ORIGINAL
+                              child: Text(
+                                "¿Olvidaste contraseña?",
+                                style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 15.sp,
+                                    color: const Color.fromARGB(
+                                        255, 255, 255, 255)),
+                              )),
+                        ),
+                        SizedBox(
+                          height: 19.h,
+                        ),
+                        Center(
+                          child: Container(
+                            width: 331.w, //MediaQuery.of(context).size.width,
+                            height: 48.h, //50,
+                            child: ElevatedButton(
+                                onPressed: () async {
+                                  //INICIAR SESIÓN DEL ARCHIVO ORIGINAL
+
+                                  if (_formKey.currentState!.validate()) {
+                                    showDialog(
+                                        context: context,
+                                        builder: (context) {
+                                          return const Center(
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                            ),
+                                          );
+                                        });
+                                    try {
+                                      await loginsol(_usuario.text,
+                                          _contrasena.text, context);
+
+                                      if (status == 200) {
+                                        Navigator.of(context)
+                                            .pop(); // Cerrar el primer AlertDialog
+
+                                        print("q pasa=");
+                                        //SI ES CLIENTE
+                                        if (rol == 4) {
+                                          await tieneUbicaciones(userData.id);
+                                          await tienePedidos(userData.id);
+                                          if (noTienePedidosEsNuevo) {
+                                            setState(() {
+                                              userData.esNuevo = true;
+                                            });
+                                          } else {
+                                            setState(() {
+                                              userData.esNuevo = false;
+                                            });
+                                          }
+                                          //SI YA TIENE UBICACIONES INGRESA DIRECTAMENTE A LA BARRA DE AVEGACION
+                                          if (yaTieneUbicaciones == true) {
+                                            //print("YA tiene unibicaciones");
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      const BarraNavegacion(
+                                                          indice: 0,
+                                                          subIndice: 0)),
+                                            );
+                                            //SI NO TIENE UBICACIONES INGRESA A UBICACION
+                                          } else {
+                                            //print("NO tiene unibicaciones");
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      const LocationPermissionScreen()),
+                                            );
+                                          }
+
+                                          //SI ES CONDUCTOR
+                                        } else if (rol == 5) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) =>
+                                                    const Driver()),
+                                          );
+
+                                          //SI ES GERENTE
+                                        } else if (rol == 3) {
+                                          //por cmabiar
+                                        }
+                                        //SI NO ESTA REGISTRADO
+                                      } else if (status == 401) {
+                                        Navigator.of(context)
+                                            .pop(); // Cerrar el primer AlertDialog
+
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return Dialog(
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.all(10),
+                                                height: MediaQuery.of(context)
+                                                        .size
+                                                        .height /
+                                                    5,
+                                                child: Column(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Container(
+                                                      width: 50,
+                                                      height: 50,
+                                                      decoration: const BoxDecoration(
+                                                          image: DecorationImage(
+                                                              image: AssetImage(
+                                                                  'lib/imagenes/nuevecito.png'))),
+                                                    ),
+                                                    const SizedBox(
+                                                      height: 19,
+                                                    ),
+                                                    Text(
+                                                      "Credenciales inválidas.",
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: MediaQuery.of(
+                                                                      context)
+                                                                  .size
+                                                                  .width /
+                                                              25,
+                                                          color: const Color
+                                                              .fromARGB(255, 2,
+                                                              100, 181)),
+                                                    ),
+                                                    const SizedBox(
+                                                      height: 19,
+                                                    ),
+                                                    TextButton(
+                                                        onPressed: () {
+                                                          Navigator.pop(
+                                                              context);
+                                                        },
+                                                        child: const Text(
+                                                          "OK",
+                                                          style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              fontSize: 24,
+                                                              color: const Color
+                                                                  .fromARGB(255,
+                                                                  4, 93, 167)),
+                                                        ))
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      } else if (status == 404) {
+                                        Navigator.of(context).pop();
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return Dialog(
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.all(10),
+                                                height: MediaQuery.of(context)
+                                                        .size
+                                                        .height /
+                                                    5,
+                                                child: Column(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Container(
+                                                      width: 50,
+                                                      height: 50,
+                                                      decoration: const BoxDecoration(
+                                                          image: DecorationImage(
+                                                              image: AssetImage(
+                                                                  'lib/imagenes/nuevecito.png'))),
+                                                    ),
+                                                    const SizedBox(
+                                                      height: 19,
+                                                    ),
+                                                    Text(
+                                                      "Usuario no existente. Intente de nuevo.",
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: MediaQuery.of(
+                                                                      context)
+                                                                  .size
+                                                                  .width /
+                                                              25,
+                                                          color: const Color
+                                                              .fromARGB(255, 2,
+                                                              100, 181)),
+                                                    ),
+                                                    const SizedBox(
+                                                      height: 19,
+                                                    ),
+                                                    TextButton(
+                                                        onPressed: () {
+                                                          Navigator.pop(
+                                                              context);
+                                                        },
+                                                        child: const Text(
+                                                          "OK",
+                                                          style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              fontSize: 24,
+                                                              color: const Color
+                                                                  .fromARGB(255,
+                                                                  4, 93, 167)),
+                                                        ))
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      }
+                                    } catch (e) {
+                                      /*print(
+                                          "Excepción durante el inicio de sesión: $e");*/
+                                    }
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(30.r))),
+                                child: Text(
+                                  "Iniciar sesión",
+                                  style: GoogleFonts.poppins(
+                                      color:
+                                          const Color.fromRGBO(0, 77, 225, 1),
+                                      fontSize: 17.sp, //30,
+                                      fontWeight: FontWeight.bold),
+                                )),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 43.h,
+                        ),
+                        Text(
+                          "¿ Quieres registrarte ?",
+                          style: GoogleFonts.poppins(
+                            fontSize: 24.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white
+                          ),
+                        ),
+                        SizedBox(
+                          height: 28.h,
+                        ),
+                        TextButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => const Formucli()),
+                                  );
+                                },
+                                child: Text(
+                                  "Registrarse",
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize:24.sp, //16,
+
+                                    color:
+                                        const Color.fromRGBO(84, 226, 132, 1),
+                                  ),
+                                )),
+                        /*Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            
+                          ],
+                        )*/
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ));
   }

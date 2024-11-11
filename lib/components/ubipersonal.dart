@@ -483,6 +483,7 @@ import 'dart:math';
 
 import 'package:appsol_final/components/hola.dart';
 import 'package:appsol_final/components/navegador.dart';
+import 'package:appsol_final/components/pedido.dart';
 import 'package:appsol_final/models/ubicacion_model.dart';
 import 'package:appsol_final/models/ubicaciones_lista_model.dart';
 import 'package:appsol_final/models/zona_model.dart';
@@ -540,7 +541,7 @@ class _MapScreenState extends State<MapScreen> {
   int? zonaIDUbicacion = 0;
   List<String> tempString = [];
   String apiZona = '/api/zona';
-final FocusNode _focusNode = FocusNode();
+  final FocusNode _focusNode = FocusNode();
   Future<void> _updateMapLocation() async {
     //print("3---------UPDATE");
     _mapController?.animateCamera(
@@ -579,10 +580,13 @@ final FocusNode _focusNode = FocusNode();
   }
 
   Future<void> obtenerDireccion(x, y) async {
+    // 3 ...............
+
     List<Placemark> placemark = await placemarkFromCoordinates(x, y);
     try {
       if (placemark.isNotEmpty) {
         Placemark lugar = placemark.first;
+        print("lugar de la ubicación: $lugar");
         setState(() {
           direccionNueva =
               "${lugar.locality}, ${lugar.subAdministrativeArea}, ${lugar.street}";
@@ -654,7 +658,7 @@ final FocusNode _focusNode = FocusNode();
     // print("2-------ADD--LOCATION");
     String name = _nameController.text;
     //if (name.isNotEmpty) {
-    //  print('Ubicación guardada: $name - $_currentPosition');
+    print('Ubicación guardada: $name - $_currentPosition');
     await obtenerDireccion(
         _currentPosition.latitude, _currentPosition.longitude);
     try {
@@ -990,24 +994,21 @@ final FocusNode _focusNode = FocusNode();
     return Scaffold(
       // Color.fromRGBO(33, 88, 254, 1),
       backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-      appBar:AppBar(
+      appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-        iconTheme: const IconThemeData(
-          color: Color.fromARGB(255, 0, 0, 0)
-        ),
+        iconTheme: const IconThemeData(color: Color.fromARGB(255, 0, 0, 0)),
       ),
       body: Padding(
         padding: const EdgeInsets.all(15.0),
         child: Container(
-         
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             //crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // LOGO DE SOL
               Container(
-                 //padding: const EdgeInsets.all(9),
-                 //color: Colors.grey,
+                //padding: const EdgeInsets.all(9),
+                //color: Colors.grey,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -1021,7 +1022,9 @@ final FocusNode _focusNode = FocusNode();
                               fit: BoxFit.fill,
                               image: AssetImage('lib/imagenes/nuevecito.png'))),
                     ),
-                    const SizedBox(width: 10,),
+                    const SizedBox(
+                      width: 10,
+                    ),
                     Text(
                       "Indicanos tu ubicación de destino",
                       textAlign: TextAlign.center,
@@ -1103,7 +1106,6 @@ final FocusNode _focusNode = FocusNode();
                 ),
               ),
 
-
               const SizedBox(
                 height: 20,
               ),
@@ -1116,23 +1118,20 @@ final FocusNode _focusNode = FocusNode();
                 decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(1)),
-             
-                  child: GoogleMap(
-                    initialCameraPosition: CameraPosition(
-                      target: _currentPosition,
-                      zoom: 14.0,
-                    ),
-                    onMapCreated: (controller) {
-                      _mapController = controller;
-                    },
-                    markers: _marker != null ? {_marker!} : {},
-                    onCameraMove: (position) {
-                      _currentPosition = position.target;
-                    },
+                child: GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: _currentPosition,
+                    zoom: 14.0,
                   ),
-                
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                  },
+                  markers: _marker != null ? {_marker!} : {},
+                  onCameraMove: (position) {
+                    _currentPosition = position.target;
+                  },
+                ),
               ),
-
 
               // ESPACIO FINAL
               const SizedBox(
@@ -1141,10 +1140,8 @@ final FocusNode _focusNode = FocusNode();
 
               // BOTON GUARDAR
               Container(
-                decoration:const BoxDecoration(
-                    
-                    ),
-                width: MediaQuery.of(context).size.width/1.1,
+                decoration: const BoxDecoration(),
+                width: MediaQuery.of(context).size.width / 1.1,
                 child: ElevatedButton(
                   style: ButtonStyle(
                       backgroundColor: WidgetStateProperty.all(
@@ -1166,7 +1163,7 @@ final FocusNode _focusNode = FocusNode();
                                 "Los datos se han guardado de manera exitosa."),
                             actions: <Widget>[
                               TextButton(
-                                child:const Text("OK"),
+                                child: const Text("OK"),
                                 onPressed: () {
                                   Navigator.of(context)
                                       .pop(); // Cerramos el diálogo
@@ -1176,12 +1173,7 @@ final FocusNode _focusNode = FocusNode();
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) =>
-                                            const BarraNavegacion(
-                                          indice: 0,
-                                          subIndice: 0,
-                                        ),
-                                      ),
+                                          builder: (context) => const Pedido()),
                                     );
                                   });
                                 },

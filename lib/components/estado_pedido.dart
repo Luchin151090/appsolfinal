@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:appsol_final/models/pedido_cliente_model.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
@@ -249,6 +251,7 @@ class _EstadoPedido extends State<EstadoPedido> with TickerProviderStateMixin {
               controller: tabController,
               children: [
                 //LIST VIEW PENDIENTES
+                listPedidosPendientes.isNotEmpty ? 
                 ListView.builder(
                     scrollDirection: Axis.vertical,
                     itemCount: listPedidosPendientes.length,
@@ -366,8 +369,12 @@ class _EstadoPedido extends State<EstadoPedido> with TickerProviderStateMixin {
                           ),
                         ),
                       );
-                    }),
+                    }): Center(child: Container(child: Text("Todavía no hay pedidos",style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20.sp
+                    ),),)),
                 //LIST VIEW ENTREGADOS
+                listPedidosPendientes.isNotEmpty ? 
                 ListView.builder(
                     scrollDirection: Axis.vertical,
                     itemCount: listPedidosPasados.length,
@@ -487,7 +494,10 @@ class _EstadoPedido extends State<EstadoPedido> with TickerProviderStateMixin {
                           ),
                         ),
                       );
-                    }),
+                    }):Center(child: Container(child: Text("Todavía no hay pedidos",style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20.sp
+                    ),),)),
               ],
             ),
           ),

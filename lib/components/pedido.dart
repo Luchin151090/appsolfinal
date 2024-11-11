@@ -1,4 +1,8 @@
+import 'package:appsol_final/components/newdriver1.dart';
+import 'package:appsol_final/components/newubicacioncli.dart';
 import 'package:appsol_final/components/prefinal.dart';
+//import 'package:appsol_final/components/pruebaubicacion.dart';
+import 'package:appsol_final/components/ubipersonal.dart';
 import 'package:appsol_final/models/pedido_model.dart';
 import 'package:appsol_final/models/promocion_model.dart';
 import 'package:appsol_final/models/producto_model.dart';
@@ -84,6 +88,176 @@ class _PedidoState extends State<Pedido> {
   String tituloUbicacion = 'Gracias por compartir tu ubicación!';
   String contenidoUbicacion = '¡Disfruta de Agua Sol!';
   late UbicacionModel miUbicacion;
+  String? _selectedValue;
+  final List<String> _options = ['Option 1', 'Option 2', 'Option 3'];
+
+
+Future<void> eliminarUbicacion(int id) async {
+  final response = await http.delete(
+    Uri.parse('$apiUrl/api/ubicacion/$id'),
+    headers: {"Content-type": "application/json"},
+  );
+
+  if (response.statusCode == 200) {
+    print('Ubicación eliminada correctamente.');
+  } else {
+    print('Error al eliminar la ubicación: ${response.statusCode}');
+  }
+}
+
+
+
+  bool isLoading = false;
+
+void _showModalBottomSheet(BuildContext context) {
+  final userProvider = Provider.of<UserProvider>(context, listen: false);
+  
+  showModalBottomSheet(
+    context: context,
+    builder: (BuildContext context) {
+      return StatefulBuilder(
+        builder: (BuildContext context, StateSetter setModalState) {
+          return Container(
+            height: MediaQuery.of(context).size.height,
+            width: MediaQuery.of(context).size.width,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: MediaQuery.of(context).size.width / 1.21,
+                  height: MediaQuery.of(context).size.height / 16,
+                  margin: EdgeInsets.all(8),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => FormUbi()),
+                      );
+                    },
+                    style: ButtonStyle(
+                      backgroundColor: MaterialStateProperty.all(
+                        Color.fromARGB(255, 24, 75, 184),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.add_location_alt_outlined,
+                          color: Color.fromARGB(255, 255, 255, 255),
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          "Agrega una ubicación",
+                          style: TextStyle(
+                            fontSize: MediaQuery.of(context).size.width * 0.05,
+                            color: Color.fromARGB(255, 255, 255, 255),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Container(
+                  margin: const EdgeInsets.all(8),
+                  width: MediaQuery.of(context).size.width / 1.2,
+                  child: const Divider(
+                    color: Color.fromARGB(255, 0, 0, 0),
+                    thickness: 2,
+                    indent: 10,
+                    endIndent: 10,
+                  ),
+                ),
+                Text(
+                  "Lista de ubicaciones",
+                  style: TextStyle(
+                    fontSize: MediaQuery.of(context).size.width * 0.05,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 25),
+                Expanded(
+                  child: isLoading
+                      ? Center(
+                          child: CircularProgressIndicator(
+                            color: Colors.blue,
+                          ),
+                        )
+                      : listUbicacionesObjetos.isNotEmpty
+                          ? ListView(
+                              children: listUbicacionesObjetos.map((UbicacionModel ubicacion) {
+                                return Container(
+                                  margin: const EdgeInsets.all(10),
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    color: const Color.fromARGB(255, 87, 106, 212),
+                                  ),
+                                  child: ListTile(
+                                    title: Text(
+                                      ubicacion.direccion,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                        fontSize: MediaQuery.of(context).size.width * 0.04,
+                                      ),
+                                    ),
+                                    trailing: IconButton(
+                                      icon: const Icon(Icons.delete, color: Colors.white),
+                                      onPressed: () async {
+                                        // Mostrar el loader
+                                        setModalState(() {
+                                          isLoading = true;
+                                        });
+
+                                        // Eliminar la dirección de la base de datos
+                                        await eliminarUbicacion(ubicacion.id);
+
+                                        // Eliminar la ubicación localmente
+                                        setState(() {
+                                          listUbicacionesObjetos.remove(ubicacion);
+                                        });
+
+                                        // Ocultar el loader
+                                        setModalState(() {
+                                          isLoading = false;
+                                        });
+                                      },
+                                    ),
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedValue = ubicacion.direccion;
+                                      });
+                                      Navigator.pop(context);
+                                    },
+                                  ),
+                                );
+                              }).toList(),
+                            )
+                          : Center(
+                              child: Text(
+                                'No tienes ubicaciones añadidas',
+                                style: TextStyle(
+                                  fontSize: MediaQuery.of(context).size.width * 0.05,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+                ),
+                SizedBox(height: 25),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
 
   DateTime mesyAnio(String? fecha) {
     if (fecha is String) {
@@ -138,51 +312,69 @@ class _PedidoState extends State<Pedido> {
 
   Future<void> crearPedidoyDetallePedido(clienteID, tipo, subtotal, monto,
       descuento, notas, codigo, cantidadBidon) async {
-    DateTime tiempoGMTPeru = tiempoActual.subtract(const Duration(hours: 0));
-    showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          return const Center(
-            child: CircularProgressIndicator(
-              color: Colors.white,
-            ),
-          );
-        });
+    try {
+      DateTime tiempoGMTPeru = tiempoActual.subtract(const Duration(hours: 0));
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            return const Center(
+              child: CircularProgressIndicator(
+                color: Colors.white,
+              ),
+            );
+          });
+      print("ESTOY DENTRO DE AQUI CREACION DE PEDIDO---------------->");
+      print(clienteID);
+      print(subtotal);
+      //print(ubicacionSelectID);
 
-    await datosCreadoPedido(
-        clienteID,
-        tiempoGMTPeru.toString(),
-        subtotal,
-        descuento,
-        monto,
-        cantidadBidon,
-        tipo,
-        "pendiente",
-        notas,
-        codigo,
-        ubicacionSelectID);
-    /*print(tiempoGMTPeru.toString());
+      /* final ubicacionProvider =
+          Provider.of<UbicacionProvider>(context, listen: false);
+      String  direccionsellecionada = "Los alamos";
+
+      final ubicacionSelectID = ubicacionProvider.ubicacion?.id ?? 0;*/
+
+      UbicacionModel direccionseleccionada =
+          direccionSeleccionada(_selectedValue!);
+
+      print("Ubicacion Select ID: $ubicacionSelectID");
+      await datosCreadoPedido(
+          clienteID,
+          tiempoGMTPeru.toString(),
+          subtotal,
+          descuento,
+          monto,
+          cantidadBidon,
+          tipo,
+          "pendiente",
+          notas,
+          codigo,
+          direccionseleccionada.id);
+      /*print(tiempoGMTPeru.toString());
     print(tiempoActual.timeZoneName);
     print("-----------------------------------");
     print("creando detalles de pedidos----------");
     print("-----------------------------------");
     print("longitud de seleccinados--------${seleccionadosTodos.length}");*/
-    for (var i = 0; i < seleccionadosTodos.length; i++) {
-      if (seleccionadosTodos[i] is Promo) {
-        for (Producto producto in seleccionadosTodos[i].listaProductos) {
-          await detallePedido(
-              clienteID,
-              producto.id,
-              (seleccionadosTodos[i].cantidad * producto.cantidad),
-              producto.promoID);
+      for (var i = 0; i < seleccionadosTodos.length; i++) {
+        if (seleccionadosTodos[i] is Promo) {
+          for (Producto producto in seleccionadosTodos[i].listaProductos) {
+            await detallePedido(
+                clienteID,
+                producto.id,
+                (seleccionadosTodos[i].cantidad * producto.cantidad),
+                producto.promoID);
+          }
+          //es producto
+        } else {
+          //es producto
+          await detallePedido(clienteID, seleccionadosTodos[i].id,
+              seleccionadosTodos[i].cantidad, seleccionadosTodos[i].promoID);
         }
-        //es producto
-      } else {
-        //es producto
-        await detallePedido(clienteID, seleccionadosTodos[i].id,
-            seleccionadosTodos[i].cantidad, seleccionadosTodos[i].promoID);
       }
+    } catch (e) {
+      print('Error al crear el pedido: $e');
     }
   }
 
@@ -240,6 +432,9 @@ class _PedidoState extends State<Pedido> {
       UbicacionModel? ubicacion, UbicacionListaModel? ubicacionList) {
     if (ubicacion is UbicacionModel) {
       //print('ES UBIIIII');
+      print("POSIBLE ERROR CON LA UBICACION----->");
+      print(ubicacion);
+      print(ubicacion.id);
       setState(() {
         hayUbicacion = true;
         miUbicacion = ubicacion;
@@ -404,12 +599,15 @@ class _PedidoState extends State<Pedido> {
   Widget build(BuildContext context) {
     final anchoActual = MediaQuery.of(context).size.width;
     final largoActual = MediaQuery.of(context).size.height;
-    final pedidoProvider = context.watch<PedidoProvider>();
-    final userProvider = context.watch<UserProvider>();
-    final ubicacionProvider = context.watch<UbicacionProvider>();
-    final ubicacionListaProvider = context.watch<UbicacionListProvider>();
+    final pedidoProvider = Provider.of<PedidoProvider>(context, listen: false);
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final ubicacionProvider = Provider.of<UbicacionProvider>(context);
+    final ubicacionListaProvider = Provider.of<UbicacionListProvider>(context);
     fechaLimiteCliente = mesyAnio(userProvider.user?.fechaCreacionCuenta);
     esUbicacion(ubicacionProvider.ubicacion, ubicacionListaProvider.ubicacion);
+    print("EN LA VISTA---->>");
+    print(ubicacionProvider.ubicacion);
+    print(ubicacionListaProvider.ubicacion);
     tamanoTitulos = largoActual * 0.02;
     tamanoTitulosDialogs = largoActual * 0.021;
     tamanoContenidoDialogs = largoActual * 0.018;
@@ -466,7 +664,7 @@ class _PedidoState extends State<Pedido> {
                           width: anchoActual * (400 / 360),
                           child: ElevatedButton(
                             onPressed: totalProvider > 0.0 &&
-                                    ubicacionSelectID != 0
+                                    _selectedValue != null
                                 ? () async {
                                     showDialog(
                                         // ignore: use_build_context_synchronously
@@ -474,7 +672,7 @@ class _PedidoState extends State<Pedido> {
                                         builder: (BuildContext context) {
                                           return Dialog(
                                             child: Container(
-                                            //  color:Colors.amber,
+                                              //  color:Colors.amber,
                                               padding: const EdgeInsets.all(10),
                                               height: MediaQuery.of(context)
                                                       .size
@@ -497,7 +695,11 @@ class _PedidoState extends State<Pedido> {
                                                     child: Text(
                                                         "¿Estas de acuerdo con tu compra?",
                                                         style: TextStyle(
-                                                            fontSize:MediaQuery.of(context).size.width/30,
+                                                            fontSize: MediaQuery.of(
+                                                                        context)
+                                                                    .size
+                                                                    .width /
+                                                                30,
                                                             color: const Color
                                                                 .fromARGB(255,
                                                                 2, 101, 182),
@@ -518,10 +720,14 @@ class _PedidoState extends State<Pedido> {
                                                             Navigator.pop(
                                                                 context);
                                                           },
-                                                          child:  Text(
+                                                          child: Text(
                                                             "Cancelar",
                                                             style: TextStyle(
-                                                                fontSize:MediaQuery.of(context).size.width/27,
+                                                                fontSize: MediaQuery.of(
+                                                                            context)
+                                                                        .size
+                                                                        .width /
+                                                                    27,
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .bold,
@@ -530,6 +736,8 @@ class _PedidoState extends State<Pedido> {
                                                           )),
                                                       TextButton(
                                                           onPressed: () async {
+                                                            //final ubicacionProvider = Provider.of<UbicacionProvider>(context, listen: false);
+                                                            //ubicacionProvider.updateUbicacionFromJson(ubicacionSelectID);
                                                             await crearPedidoyDetallePedido(
                                                                 userProvider
                                                                     .user?.id,
@@ -553,10 +761,14 @@ class _PedidoState extends State<Pedido> {
                                                                           const Prefinal()),
                                                             );
                                                           },
-                                                          child:  Text(
+                                                          child: Text(
                                                             "Si",
                                                             style: TextStyle(
-                                                                fontSize: MediaQuery.of(context).size.width/27,
+                                                                fontSize: MediaQuery.of(
+                                                                            context)
+                                                                        .size
+                                                                        .width /
+                                                                    27,
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .bold,
@@ -669,20 +881,22 @@ class _PedidoState extends State<Pedido> {
               ),
             ),
             SingleChildScrollView(
-              padding: const EdgeInsets.only(top: 70, right: 5, left: 5,bottom: 25),
+              physics: BouncingScrollPhysics(),
+              padding:
+                  const EdgeInsets.only(top: 70, right: 5, left: 5, bottom: 25),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
                         margin: EdgeInsets.only(left: anchoActual * 0.055),
                         width: 80,
                         height: 80,
                         decoration: const BoxDecoration(
-                          //color: Colors.grey,
+                            //color: Colors.grey,
                             image: DecorationImage(
                                 image: AssetImage('lib/imagenes/nuevito.png'))),
                       ),
@@ -1111,20 +1325,21 @@ class _PedidoState extends State<Pedido> {
                                     //print('hay bidones nuevos');
                                     setState(() {
                                       buscandoCodigo = false;
-                                      colorCupon = const Color.fromARGB(255, 90, 255, 96);
+                                      colorCupon = const Color.fromARGB(
+                                          255, 90, 255, 96);
                                       ahorro = 12.0 * cantidadBidones;
 
                                       // print("ESTE ES EL AHORRO: $ahorro");
                                       actualizarProviderPedido();
                                     });
-                                     // Mostrar SnackBar cuando el código es válido
-  ScaffoldMessenger.of(context).showSnackBar(
-   const SnackBar(
-      content: Text('Código válido'),
-      backgroundColor: Colors.green,
-      duration: Duration(seconds: 2),
-    ),
-  );
+                                    // Mostrar SnackBar cuando el código es válido
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Código válido'),
+                                        backgroundColor: Colors.green,
+                                        duration: Duration(seconds: 2),
+                                      ),
+                                    );
                                   } else {
                                     //print('no hay bidones');
                                     setState(() {
@@ -1222,7 +1437,7 @@ class _PedidoState extends State<Pedido> {
                     margin: EdgeInsets.only(
                         bottom: largoActual * 0.002, left: anchoActual * 0.055),
                     child: Text(
-                      "Tipo de envio",
+                      "Tipo de envío",
                       style: TextStyle(
                           color: Colors.white, //,colorTitulos,
                           fontWeight: FontWeight.w600,
@@ -1364,196 +1579,262 @@ class _PedidoState extends State<Pedido> {
                     margin: EdgeInsets.only(
                         bottom: largoActual * 0.002, left: anchoActual * 0.055),
                     child: Text(
-                      "Direccion de envio",
+                      "Dirección de envío",
                       style: TextStyle(
                           color: Colors.white, //colorTitulos,
                           fontWeight: FontWeight.w600,
                           fontSize: tamanoTitulos),
                     ),
                   ),
-                  Card(
-                      surfaceTintColor: Colors.white,
-                      color: Colors.white,
-                      elevation: 8,
-                      margin: EdgeInsets.only(
-                          left: anchoActual * 0.028,
-                          right: anchoActual * 0.028,
-                          bottom: largoActual * 0.013),
-                      child: Container(
-                          //height: largoActual * 0.2,
-                          margin: EdgeInsets.only(
-                              left: anchoActual * 0.055,
-                              right: anchoActual * 0.055,
-                              top: largoActual * 0.0068,
-                              bottom: largoActual * 0.0068),
-                          //AQUI SE PONDRA LA DIRECCION QUE ELIGIO EL CLIENTE
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: hayUbicacion
-                                ? [
-                                    SizedBox(
-                                      width: anchoActual * 0.62,
-                                      child: Text(
-                                        direccion,
-                                        textAlign: TextAlign.start,
-                                        style: TextStyle(
-                                            fontSize: largoActual * 0.017,
-                                            color: colorDireccion),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      width: anchoActual * 0.013,
-                                    ),
-                                    Container(
-                                      margin: EdgeInsets.only(
-                                        top: largoActual * 0.0013,
-                                        bottom: largoActual * 0.0013,
-                                      ),
-                                      height: largoActual * 0.061,
-                                      width: largoActual * 0.061,
-                                      decoration: BoxDecoration(
-                                        color: Colors.transparent,
-                                        borderRadius: BorderRadius.circular(0),
-                                      ),
-                                      child: Lottie.asset(
-                                          'lib/imagenes/ubi4.json'),
-                                    ),
-                                  ]
-                                : [
-                                    Container(
-                                      width: anchoActual * 0.65,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(15),
-                                      ),
-                                      child: Container(
-                                        margin: const EdgeInsets.only(
-                                            left: 12, right: 5),
-                                        child: DropdownButton<String>(
-                                          iconEnabledColor: colorContenido,
-                                          hint: Text(
-                                            direccion,
-                                            style: TextStyle(
-                                              color: colorDireccion,
-                                              fontSize: largoActual * 0.017,
-                                              fontStyle: FontStyle.italic,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
+                  Row(
+                    children: [
+                      Card(
+                        surfaceTintColor: Colors.white,
+                        color: Colors.white,
+                        elevation: 8,
+                        margin: EdgeInsets.only(
+                            left: anchoActual * 0.028,
+                            right: anchoActual * 0.028,
+                            bottom: largoActual * 0.013),
+                        //child: DropdownButton(items: items, onChanged: onChanged)
+                        child: GestureDetector(
+                          onTap: () => _showModalBottomSheet(context),
+                          child: Container(
+                            width: anchoActual / 1.1,
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              //color: Color.fromARGB(255, 187, 167, 167),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Flexible(
+                                  child: Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          _selectedValue ??
+                                              'Agregar una ubicación',
+                                          overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            color: colorContenido,
-                                            fontSize: largoActual * 0.017,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                          elevation: 20,
-                                          dropdownColor: Colors.white,
-                                          isExpanded: true,
-                                          value: _ubicacionSelected,
-                                          items: ubicacionesString
-                                              .map((String value) {
-                                            return DropdownMenuItem<String>(
-                                              value: value,
-                                              child: Text(value),
-                                            );
-                                          }).toList(),
-                                          onChanged: (String? newValue) {
-                                            if (newValue is String) {
-                                              if (direccionSeleccionada(
-                                                          newValue)
-                                                      .zonaID ==
-                                                  0) {
-                                                setState(() {
-                                                  tituloUbicacion =
-                                                      'Lo sentimos :(';
-                                                  contenidoUbicacion =
-                                                      'Todavía no llegamos a tu zona, pero puedes revisar nuestros productos en la aplicación o elegir otra ubicación :D';
-                                                });
-                                                showDialog(
-                                                  context: context,
-                                                  builder:
-                                                      (BuildContext context) {
-                                                    return AlertDialog(
-                                                      backgroundColor:
-                                                          Colors.white,
-                                                      surfaceTintColor:
-                                                          Colors.white,
-                                                      title: Text(
-                                                        tituloUbicacion,
-                                                        style: TextStyle(
-                                                            fontSize:
-                                                                largoActual *
-                                                                    0.026,
-                                                            fontWeight:
-                                                                FontWeight.w400,
-                                                            color:
-                                                                Colors.black),
-                                                      ),
-                                                      content: Text(
-                                                        contenidoUbicacion,
-                                                        style: TextStyle(
-                                                            fontSize:
-                                                                largoActual *
-                                                                    0.018,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .w400),
-                                                      ),
-                                                      actions: <Widget>[
-                                                        TextButton(
-                                                          onPressed: () {
-                                                            Navigator.of(
-                                                                    context)
-                                                                .pop(); // Cierra el AlertDialog
-                                                          },
-                                                          child: Text(
-                                                            'OK',
-                                                            style: TextStyle(
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w400,
-                                                                fontSize:
-                                                                    largoActual *
-                                                                        0.02,
-                                                                color: Colors
-                                                                    .black),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    );
-                                                  },
-                                                );
-                                              } else {
-                                                setState(() {
-                                                  _ubicacionSelected = newValue;
-                                                  miUbicacion =
-                                                      direccionSeleccionada(
-                                                          newValue);
-                                                  ubicacionSelectID =
-                                                      miUbicacion.id;
-                                                });
-                                              }
-                                            }
-                                          },
+                                              color: Color.fromARGB(
+                                                  255, 22, 46, 153),
+                                              fontSize: 16),
                                         ),
                                       ),
+                                      Icon(Icons.arrow_drop_down),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  margin: EdgeInsets.only(
+                                    top: largoActual * 0.0013,
+                                    bottom: largoActual * 0.0013,
+                                  ),
+                                  height: largoActual * 0.061,
+                                  width: largoActual * 0.061,
+                                  decoration: BoxDecoration(
+                                    //  color: Color.fromARGB(0, 78, 27, 27),
+                                    borderRadius: BorderRadius.circular(0),
+                                  ),
+                                  child: Lottie.asset('lib/imagenes/ubi4.json'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        /* child: Container(
+                              //height: largoActual * 0.2,
+                              margin: EdgeInsets.only(
+                                  left: anchoActual * 0.055,
+                                  right: anchoActual * 0.055,
+                                  top: largoActual * 0.0068,
+                                  bottom: largoActual * 0.0068),
+                              //AQUI SE PONDRA LA DIRECCION QUE ELIGIO EL CLIENTE
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: hayUbicacion
+                                    ? [
+                                        SizedBox(
+                                          width: anchoActual * 0.62,
+                                          child: Text(
+                                            direccion,
+                                            textAlign: TextAlign.start,
+                                            style: TextStyle(
+                                                fontSize: largoActual * 0.017,
+                                                color: colorDireccion),
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: anchoActual * 0.013,
+                                        ),
+                                        Container(
+                                          margin: EdgeInsets.only(
+                                            top: largoActual * 0.0013,
+                                            bottom: largoActual * 0.0013,
+                                          ),
+                                          height: largoActual * 0.061,
+                                          width: largoActual * 0.061,
+                                          decoration: BoxDecoration(
+                                            color: Colors.transparent,
+                                            borderRadius: BorderRadius.circular(0),
+                                          ),
+                                          child: Lottie.asset(
+                                              'lib/imagenes/ubi4.json'),
+                                        ),
+                                      ]
+                                    : [ 
+                                        Container(
+                                          width: anchoActual * 0.65,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(15),
+                                          ),
+                                          child: Container(
+                                            margin: const EdgeInsets.only(
+                                                left: 12, right: 5),
+                                            child: DropdownButton<String>(
+                                              iconEnabledColor: colorContenido,
+                                              hint: Text(
+                                                direccion,
+                                                style: TextStyle(
+                                                  color: colorDireccion,
+                                                  fontSize: largoActual * 0.017,
+                                                  fontStyle: FontStyle.italic,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              style: TextStyle(
+                                                color: colorContenido,
+                                                fontSize: largoActual * 0.017,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                              elevation: 20,
+                                              dropdownColor: Colors.white,
+                                              isExpanded: true,
+                                              value: _ubicacionSelected,
+                                              items: ubicacionesString
+                                                  .map((String value) {
+                                                return DropdownMenuItem<String>(
+                                                  value: value,
+                                                  child: Text(value),
+                                                );
+                                              }).toList(),
+                                              onChanged: (String? newValue) {
+                                                if (newValue is String) {
+                                                  if (direccionSeleccionada(newValue).zonaID ==
+                                                      0) {
+                                                    setState(() {
+                                                      tituloUbicacion =
+                                                          'Lo sentimos :(';
+                                                      contenidoUbicacion =
+                                                          'Todavía no llegamos a tu zona, pero puedes revisar nuestros productos en la aplicación o elegir otra ubicación :D';
+                                                    });
+                                                    showDialog(
+                                                      context: context,
+                                                      builder:
+                                                          (BuildContext context) {
+                                                        return AlertDialog(
+                                                          backgroundColor:
+                                                              Colors.white,
+                                                          surfaceTintColor:
+                                                              Colors.white,
+                                                          title: Text(
+                                                            tituloUbicacion,
+                                                            style: TextStyle(
+                                                                fontSize:
+                                                                    largoActual *
+                                                                        0.026,
+                                                                fontWeight:
+                                                                    FontWeight.w400,
+                                                                color:
+                                                                    Colors.black),
+                                                          ),
+                                                          content: Text(
+                                                            contenidoUbicacion,
+                                                            style: TextStyle(
+                                                                fontSize:
+                                                                    largoActual *
+                                                                        0.018,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w400),
+                                                          ),
+                                                          actions: <Widget>[
+                                                            TextButton(
+                                                              onPressed: () {
+                                                                Navigator.of(
+                                                                        context)
+                                                                    .pop(); // Cierra el AlertDialog
+                                                              },
+                                                              child: Text(
+                                                                'OK',
+                                                                style: TextStyle(
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w400,
+                                                                    fontSize:
+                                                                        largoActual *
+                                                                            0.02,
+                                                                    color: Colors
+                                                                        .black),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        );
+                                                      },
+                                                    );
+                                                  } else {
+                                                    setState(() {
+                                                      _ubicacionSelected = newValue;
+                                                      miUbicacion =
+                                                          direccionSeleccionada(
+                                                              newValue);
+                                                      ubicacionSelectID =
+                                                          miUbicacion.id;
+                                                    });
+                                                  }
+                                                }
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          margin: EdgeInsets.only(
+                                            top: largoActual * 0.0013,
+                                            bottom: largoActual * 0.0013,
+                                          ),
+                                          height: largoActual * 0.061,
+                                          width: largoActual * 0.061,
+                                          decoration: BoxDecoration(
+                                            color: Colors.transparent,
+                                            borderRadius: BorderRadius.circular(0),
+                                          ),
+                                          child: Lottie.asset(
+                                              'lib/imagenes/ubi4.json'),
+                                        ),
+                                      ],
+                              ))*/
+                      ),
+
+                      /*   Container(
+                                    width: MediaQuery.of(context).size.width/9,
+                                    height:MediaQuery.of(context).size.width/9,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(50)
                                     ),
-                                    Container(
-                                      margin: EdgeInsets.only(
-                                        top: largoActual * 0.0013,
-                                        bottom: largoActual * 0.0013,
-                                      ),
-                                      height: largoActual * 0.061,
-                                      width: largoActual * 0.061,
-                                      decoration: BoxDecoration(
-                                        color: Colors.transparent,
-                                        borderRadius: BorderRadius.circular(0),
-                                      ),
-                                      child: Lottie.asset(
-                                          'lib/imagenes/ubi4.json'),
-                                    ),
-                                  ],
-                          ))),
+                                    child: IconButton(onPressed: (){
+                                      Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => const Pruebaubicacion()));
+                                    },
+                                                                   icon: Icon(Icons.add_location_outlined,color: Color.fromARGB(255, 51, 88, 211),
+                                                                   size:MediaQuery.of(context).size.width/15)),
+                                  )*/
+                    ],
+                  ),
                   //RESUMEN
                   Container(
                     margin: EdgeInsets.only(

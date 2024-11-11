@@ -10,6 +10,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+
 
 class Productos extends StatefulWidget {
   const Productos({super.key});
@@ -320,7 +322,7 @@ class _ProductosState extends State<Productos> {
                                     decoration: BoxDecoration(
                                         color: Colors.white,
                                         image: DecorationImage(
-                                            image: NetworkImage(producto.foto),
+                                            image: CachedNetworkImageProvider(producto.foto),
                                             fit: BoxFit.scaleDown)),
                                   ),
                                   Container(
@@ -477,12 +479,35 @@ class _ProductosState extends State<Productos> {
                               height: largoActual*0.007,
                             ),
                             Container(
-                              width: largoActual*0.083,
+                              width: largoActual*0.072,
                               height: largoActual*0.072,
                               //color: Colors.grey,
+                              //alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(50),
+                                color: Colors.green
+                              ),
                               margin:
                                   EdgeInsets.only(right: anchoActual * 0.035),
-                              child: ElevatedButton(
+                              child: IconButton( onPressed: almenosUno
+                                      ? () {
+                                          obtenerProductos();
+                                          pedidoMio = PedidoModel(
+                                            seleccionados: productosProvider,
+                                            seleccionadosPromo: promosProvider,
+                                            cantidadProd:
+                                                productosProvider.length +
+                                                    promosProvider.length,
+                                            totalProds: totalProvider,
+                                            envio: envio,
+                                          );
+                                          Provider.of<PedidoProvider>(context,
+                                                  listen: false)
+                                              .updatePedido(pedidoMio);
+                                        }
+                                      : null,
+                               icon:Icon(Icons.add_shopping_cart_sharp,color: Colors.white,size:anchoActual*0.065)),
+                               /*ElevatedButton(
                                   onPressed: almenosUno
                                       ? () {
                                           obtenerProductos();
@@ -505,11 +530,13 @@ class _ProductosState extends State<Productos> {
                                       backgroundColor:
                                           MaterialStateProperty.all(
                                               Color.fromRGBO(58, 182, 0, 1))),
-                                  child: Icon(
-                                    Icons.add_shopping_cart_rounded,
-                                    color: Colors.white,
-                                    size: anchoActual*0.073,
-                                  )),
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.add_shopping_cart_rounded,
+                                      color: Colors.white,
+                                      size: anchoActual*0.065,
+                                    ),
+                                  )),*/
                             ),
                           ],
                         ),

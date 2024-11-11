@@ -3,7 +3,8 @@ import 'package:appsol_final/components/responsiveUI/breakpoint.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:appsol_final/components/preregistro.dart';
-
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 class Registroelegir extends StatefulWidget {
   const Registroelegir({super.key});
 
@@ -14,143 +15,132 @@ class Registroelegir extends StatefulWidget {
 class _RegistroelegirState extends State<Registroelegir> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  Widget pantalla(String tama, double ancho, double alto, double texto1) {
-    return Stack(
-      children: [
-        // Imagen de fondo
-        Positioned.fill(
-          child: Image.asset(
-            'lib/imagenes/aguamarina2.png', // Asegúrate de tener la imagen en la carpeta assets y agregarla en pubspec.yaml
-            fit: BoxFit.cover,
-          ),
-        ),
-        //Text("${tama} ${MediaQuery.of(context).size.width}}"),
-        Center(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(texto1),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(0.0),
-                      child: Column(
-                        children: [
-                          Center(
-                            child: Text(
-                              'Elija de que modo quiere registrarse',
-                              style: TextStyle(
-                                fontSize:
-                                    MediaQuery.of(context).size.width / 19.5,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          SizedBox(
-                            height: MediaQuery.of(context).size.height / 65,
-                          ),
-                          Container(
-                            width: MediaQuery.of(context).size.width / 1.3,
-                            height: MediaQuery.of(context).size.height / 19,
-                            child: ElevatedButton(
-                                onPressed: () {
-                                 /* Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) =>
-                                            const Registroconductor()),
-                                  );*/
-                                },
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        Color.fromARGB(255, 131, 132, 133),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(18))),
-                                child: Text(
-                                  "Conductor: Pronto",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              15,
-                                      fontWeight: FontWeight.w700,
-                                      color: const Color.fromARGB(
-                                          255, 255, 255, 255)),
-                                )),
-                          ).animate().fade(delay: 0.9.ms).slideY(),
-                          const SizedBox(
-                            height: 15,
-                          ),
-                          Container(
-                            width: MediaQuery.of(context).size.width / 1.3,
-                            height: MediaQuery.of(context).size.height / 19,
-                            child: ElevatedButton(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) => const Formucli()),
-                                  );
-                                },
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color.fromARGB(
-                                        255, 255, 255, 255),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(18))),
-                                child: Text(
-                                  "Cliente",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              15,
-                                      color:
-                                          const Color.fromRGBO(0, 77, 255, 1),
-                                      fontWeight: FontWeight.bold),
-                                )),
-                          ).animate().fade(delay: 0.9.ms).slideY(),
-                        ],
-                      ),
-                    ),
-                  ]),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  // Tamaño de la cuadrícula, puedes ajustar esto según lo que necesites
+  final double gridSize = 50;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth <= Breakpoint.xsmall) {
-            return pantalla("XS", 100, 85, 10);
-          } else if (constraints.maxWidth <= Breakpoint.avgsmall) {
-            return pantalla("avS", 110, 100, 13.0);
-          } else if (constraints.maxWidth <= Breakpoint.small) {
-            return pantalla("S", 140, 140, 18); // PUNTO CLAVE
-          } else if (constraints.maxWidth <= Breakpoint.avgmedium) {
-            return pantalla("avM", 160, 160, 18);
-          } else if (constraints.maxWidth <= Breakpoint.medium) {
-            return pantalla("M", 220, 180, 18);
-          } else if (constraints.maxWidth <= Breakpoint.avglarg) {
-            return pantalla("avL", 220, 200, 18);
-          } else if (constraints.maxWidth <= Breakpoint.large) {
-            return pantalla("L", 220, 220, 18);
-          } else if (constraints.maxWidth <= Breakpoint.avgxlarge) {
-            return pantalla("avXL", 240, 240, 18);
-          } else {
-            return pantalla("XL", 260, 260, 18);
-          }
-        },
+      body: Stack(
+        children: [
+          // Imagen de fondo
+          Positioned.fill(
+            child: Image.asset(
+              'lib/imagenes/aguamarina2.png',
+              fit: BoxFit.cover,
+            ),
+          ),
+          // Grid de guía (puedes eliminar este widget más tarde)
+          /*CustomPaint(
+            size: MediaQuery.of(context).size,
+            painter: GridPainter(gridSize: gridSize),
+          ),*/
+          Container(
+            child: Column(
+              //mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(height: 267.h),
+                Container(
+                  width: 156.w,
+                  height: 127.h,
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('lib/imagenes/nuevito.png'),
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 50.h),
+                Center(
+                  child: Text(
+                    'Regístrate como',
+                    style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24.sp,
+                        color: Colors.white),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                SizedBox(height: 50.h),
+                Container(
+                  width: 331.w,
+                  height: 39.h,
+                  child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const Formucli()),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20.r))),
+                      child: Text(
+                        "Cliente",
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            color: Color.fromARGB(255, 31, 28, 190),
+                            fontSize: 18.sp),
+                      )),
+                ),
+                SizedBox(height: 30.h),
+                Container(
+                  width: 331.w,
+                  height: 39.h,
+                  child: ElevatedButton(
+                      onPressed: () {
+                        // Acción para el botón "Conductor"
+                      },
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Color.fromARGB(255, 131, 132, 133),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20.r))),
+                      child: Text(
+                        "Conductor",
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontSize: 18.sp),
+                      )),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
+  }
+}
+
+// Clase para dibujar el grid
+class GridPainter extends CustomPainter {
+  final double gridSize;
+
+  GridPainter({required this.gridSize});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.2)
+      ..strokeWidth = 4;
+
+    // Dibuja las líneas horizontales
+    for (double y = 0; y < size.height; y += gridSize) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+
+    // Dibuja las líneas verticales
+    for (double x = 0; x < size.width; x += gridSize) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
   }
 }

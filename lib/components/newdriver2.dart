@@ -152,12 +152,11 @@ class _NavegacionState extends State<Navegacion> {
     socketService.listenToEvent('pedidoanulado', (data) async {
       // print("----anulando ---- pedido");
       // print("dentro del evento");
-      SharedPreferences rutaidget = await SharedPreferences.getInstance();
-      int? rutaid = rutaidget.getInt('rutaIDNEW');
+      final pedidosProvider = Provider.of<PedidoconductorProvider>(context, listen: false);
 
       //  print(rutaid);
 
-      if (rutaid == data['ruta_id']) {
+      if (pedidosProvider.getIdRuta() == data['ruta_id']) {
         //     print("---entro a ala ruta_od");
         if (context.mounted) {
           showDialog(
@@ -859,14 +858,14 @@ class _NavegacionState extends State<Navegacion> {
                           const SizedBox(
                             height: 10,
                           ),
-                          Text(
+                          /*Text(
                             "${cardpedidoProvider.pedido?.direccion}",
                             style: TextStyle(
                                 fontSize:
                                     MediaQuery.of(context).size.width / 25,
                                 fontWeight: FontWeight.bold),
                             textAlign: TextAlign.left,
-                          ),
+                          ),*/
                           Text(
                               "Total: S/. ${cardpedidoProvider.pedido?.precio}",
                               style: TextStyle(

@@ -1,3 +1,4 @@
+import 'package:appsol_final/models/ubicacion_model.dart';
 import 'package:flutter/material.dart';
 import 'package:appsol_final/models/ubicaciones_lista_model.dart';
 
@@ -12,5 +13,12 @@ class UbicacionListProvider extends ChangeNotifier {
   void updateUbicacionList(UbicacionListaModel newUbicacion) {
     _ubicacion = newUbicacion;
     notifyListeners();
+  }
+
+  // Agregar una nueva ubicación
+  void addUbicacion(UbicacionModel nuevaUbicacion) {
+    _ubicacion?.listaUbisObjeto.add(nuevaUbicacion);
+    _ubicacion?.listaUbisString.add(nuevaUbicacion.direccion);
+    notifyListeners(); // Notificar a los receptores que hay una nueva ubicación
   }
 }
